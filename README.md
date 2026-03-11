@@ -1,0 +1,2 @@
+# DVK_UPPSATS_2026_MalinKjellgren_PhilipSoderstrom
+Exam research
