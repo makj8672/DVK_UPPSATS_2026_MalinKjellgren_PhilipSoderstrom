@@ -1,0 +1,1 @@
+# Standalone rule-based trading strategy
