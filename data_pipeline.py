@@ -1,6 +1,14 @@
 # Fetch and save data
 # Connects to MT%, fetches data, calculates indicators, saves CSV
 
+# Psudo code:
+# 1. Connect to MT5
+# 2. Fetch XAU/USD data - last 5000 candles
+# 3. Convert to pandas dataframe
+# 4. Add and calculate technical indicators (RSI, SMA_50, SMA_200, OBV)
+# 5. Create target variable (did price go up next hour? 1=yes, 0=no)
+# 6. Remove rows with missing values
+# 7. Return dataframe
 
 import MetaTrader5 as mt5
 import pandas as pd

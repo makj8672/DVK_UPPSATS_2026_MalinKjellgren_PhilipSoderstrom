@@ -1,5 +1,16 @@
 # Runs everything
 
+# Psudo code: 
+# df = get_data()
+# strategyA = RuleBasedStrategy()
+# strategyB = LogisticRegressionStrategy()
+# strategyB.train(df)
+#
+# resultsA = run_backtest(strategyA, df)
+# resultsB = run_backtest(strategyB, df)
+
+# Compare and print results
+
 from data_pipeline import get_data
 
 df = get_data()
