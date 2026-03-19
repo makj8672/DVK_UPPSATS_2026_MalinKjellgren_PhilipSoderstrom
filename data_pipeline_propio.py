@@ -1,6 +1,7 @@
 
 import MetaTrader5 as mt5
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 symbol = "XAUUSD"  # Valutaparet du vill hämta data för
 timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill häm
@@ -52,11 +53,19 @@ def create_labels(data_frame):
     print(data_frame["target"].value_counts())  # Visar fördelningen av målvariabeln
     return data_frame  # Returnerar DataFrame med målvariabeln
 
+def split_data(data_frame):
+    X = data_frame[["returns", "sma_10", "volatility"]]  # Funktioner
+    y = data_frame["target"]  # Målvariabel
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False) # Delar upp data i tränings- och testset utan att blanda ordningen
+    print(X_train.shape, X_test.shape)
+    return X_train, X_test, y_train, y_test  # Delar upp data i tränings- och testset
+
 if __name__ == "__main__":
     print("Starting data pipeline...")
     data_frame = get_data()
     data_frame = prepare_data(data_frame)
     data_frame = create_features(data_frame)
     data_frame = create_labels(data_frame)
+    X_train, X_test, y_train, y_test = split_data(data_frame)
     print("Data retrieval completed.")
     print("Data pipeline completed.")
