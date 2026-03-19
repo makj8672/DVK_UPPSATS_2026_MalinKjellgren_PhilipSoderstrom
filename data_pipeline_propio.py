@@ -38,10 +38,25 @@ def prepare_data(data_frame):
     print(data_frame.dtypes)  # Visar datatyperna i DataFrame
     return data_frame  # Returnerar den förberedda DataFrame
 
+def create_features(data_frame):
+    data_frame["returns"] = data_frame["close"].pct_change()  # Skapar en ny kolumn för avkastning
+    data_frame["sma_10"] = data_frame["close"].rolling(window=10).mean()  # Skapar en ny kolumn för 10-perioders glidande medelvärde
+    data_frame["volatility"] = data_frame["returns"].rolling(window=10).std()  # Skapar en ny kolumn för volatilitet
+    data_frame.dropna(inplace=True)  # Tar bort rader med NaN-värden
+    print(data_frame.head(rows))  # Visar de första 5 raderna av DataFrame med nya funktioner
+    return data_frame  # Returnerar DataFrame med nya funktioner
+
+def create_labels(data_frame):
+    data_frame["target"] = (data_frame["close"].shift(-1) > data_frame["close"]).astype(int)  # Skapar en ny kolumn för målvariabeln
+    data_frame.dropna(inplace=True)  # Tar bort rader med NaN-vär
+    print(data_frame["target"].value_counts())  # Visar fördelningen av målvariabeln
+    return data_frame  # Returnerar DataFrame med målvariabeln
 
 if __name__ == "__main__":
     print("Starting data pipeline...")
     data_frame = get_data()
-    prepare_data(data_frame) 
+    data_frame = prepare_data(data_frame)
+    data_frame = create_features(data_frame)
+    data_frame = create_labels(data_frame)
     print("Data retrieval completed.")
     print("Data pipeline completed.")
