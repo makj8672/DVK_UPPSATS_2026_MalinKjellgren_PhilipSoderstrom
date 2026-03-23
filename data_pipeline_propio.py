@@ -2,6 +2,9 @@
 import MetaTrader5 as mt5
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 symbol = "XAUUSD"  # Valutaparet du vill hämta data för
 timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill häm
@@ -55,10 +58,26 @@ def create_labels(data_frame):
 
 def split_data(data_frame):
     X = data_frame[["returns", "sma_10", "volatility"]]  # Funktioner
-    y = data_frame["target"]  # Målvariabel
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False) # Delar upp data i tränings- och testset utan att blanda ordningen
+    Y = data_frame["target"]  # Målvariabel
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=False) # Delar upp data i tränings- och testset utan att blanda ordningen
     print(X_train.shape, X_test.shape)
-    return X_train, X_test, y_train, y_test  # Delar upp data i tränings- och testset
+    return X_train, X_test, Y_train, Y_test  # Delar upp data i tränings- och testset
+
+def train_model(X_train, X_test, Y_train):
+    scaler = StandardScaler()  # Skapar en standard scaler
+    X_train_scaled = scaler.fit_transform(X_train)  # Skalar träningsdata
+    X_test_scaled = scaler.transform(X_test)  # Skalar testdata
+
+    model = LogisticRegression()  # Skapar en logistisk regressionsmodell
+    model.fit(X_train_scaled, Y_train)  # Tränar modellen på träningsdata
+    print("Model trained successfully")  # Bekräftar att modellen har tränats
+    return model, X_test_scaled  # Returnerar den tränade modellen och skalad testdata
+
+def evaluate_model(model, X_test_scaled, Y_test):
+    Y_pred = model.predict(X_test_scaled)  # Gör förutsägelser på testdata
+    print(accuracy_score(Y_test, Y_pred))  # Visar noggrannheten av modellen
+    print(confusion_matrix(Y_test, Y_pred))  # Visar förvirringsmat
+    print(classification_report(Y_test, Y_pred))  # Visar en klassificeringsrapport
 
 if __name__ == "__main__":
     print("Starting data pipeline...")
@@ -66,6 +85,9 @@ if __name__ == "__main__":
     data_frame = prepare_data(data_frame)
     data_frame = create_features(data_frame)
     data_frame = create_labels(data_frame)
-    X_train, X_test, y_train, y_test = split_data(data_frame)
+    X_train, X_test, Y_train, Y_test = split_data(data_frame)
+    model, X_test_scaled = train_model(X_train, X_test, Y_train)
+    evaluate_model(model, X_test_scaled, Y_test)
+
     print("Data retrieval completed.")
     print("Data pipeline completed.")
