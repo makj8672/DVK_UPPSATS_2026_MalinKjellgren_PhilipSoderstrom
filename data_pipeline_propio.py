@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 symbol = "XAUUSD"  # Valutaparet du vill hämta data för
 timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill häm
 start_pos = 0  # Startpositionen för att hämta data
-count = 1000  # Antal datapunkter att hämta
+count = 5000  # Antal datapunkter att hämta
 rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
 forward_hours = 24  # Antal timmar framåt för att skapa målvariabeln
