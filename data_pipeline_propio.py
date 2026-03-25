@@ -44,7 +44,8 @@ def prepare_data(data_frame):
 
 def create_features(data_frame):
     data_frame["returns"] = data_frame["close"].pct_change()  # Skapar en ny kolumn för avkastning
-    data_frame["sma_10"] = data_frame["close"].rolling(window=10).mean()  # Skapar en ny kolumn för 10-perioders glidande medelvärde
+    sma = data_frame["close"].rolling(window=10).mean()  # Beräknar 10-perioders glidande medelvärde
+    data_frame["sma_10"] = (data_frame["close"] - sma) / sma  # Skapar en ny kolumn för den normaliserade skillnaden mellan stängningspriset och det glidande medelvärdet
     data_frame["volatility"] = data_frame["returns"].rolling(window=10).std()  # Skapar en ny kolumn för volatilitet
     data_frame.dropna(inplace=True)  # Tar bort rader med NaN-värden
     print(data_frame.head(rows))  # Visar de första 5 raderna av DataFrame med nya funktioner
@@ -68,7 +69,7 @@ def train_model(X_train, X_test, Y_train):
     X_train_scaled = scaler.fit_transform(X_train)  # Skalar träningsdata
     X_test_scaled = scaler.transform(X_test)  # Skalar testdata
 
-    model = LogisticRegression()  # Skapar en logistisk regressionsmodell
+    model = LogisticRegression(class_weight="balanced")  # Skapar en logistisk regressionsmodell
     model.fit(X_train_scaled, Y_train)  # Tränar modellen på träningsdata
     print("Model trained successfully")  # Bekräftar att modellen har tränats
     return model, X_test_scaled  # Returnerar den tränade modellen och skalad testdata
@@ -77,7 +78,7 @@ def evaluate_model(model, X_test_scaled, Y_test):
     Y_pred = model.predict(X_test_scaled)  # Gör förutsägelser på testdata
     print(accuracy_score(Y_test, Y_pred))  # Visar noggrannheten av modellen
     print(confusion_matrix(Y_test, Y_pred))  # Visar förvirringsmat
-    print(classification_report(Y_test, Y_pred))  # Visar en klassificeringsrapport
+    print(classification_report(Y_test, Y_pred, zero_division=0))  # Visar en klassificeringsrapport
 
 if __name__ == "__main__":
     print("Starting data pipeline...")
