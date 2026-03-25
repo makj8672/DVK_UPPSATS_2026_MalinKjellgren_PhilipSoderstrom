@@ -13,6 +13,7 @@ start_pos = 0  # Startpositionen för att hämta data
 count = 1000  # Antal datapunkter att hämta
 rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
+forward_hours = 24  # Antal timmar framåt för att skapa målvariabeln
 
 def get_data():
 
@@ -54,7 +55,7 @@ def create_features(data_frame):
     return data_frame  # Returnerar DataFrame med nya funktioner
 
 def create_labels(data_frame):
-    data_frame["target"] = (data_frame["close"].shift(-1) > data_frame["close"]).astype(int)  # Skapar en ny kolumn för målvariabeln
+    data_frame["target"] = (data_frame["close"].shift(-forward_hours) > data_frame["close"]).astype(int)  # Skapar en ny kolumn för målvariabeln
     data_frame.dropna(inplace=True)  # Tar bort rader med NaN-vär
     print(data_frame["target"].value_counts())  # Visar fördelningen av målvariabeln
     return data_frame  # Returnerar DataFrame med målvariabeln
