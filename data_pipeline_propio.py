@@ -1,6 +1,7 @@
 
 import MetaTrader5 as mt5
 import pandas as pd
+import ta
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
