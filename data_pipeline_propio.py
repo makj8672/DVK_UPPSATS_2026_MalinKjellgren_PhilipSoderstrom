@@ -48,6 +48,7 @@ def create_features(data_frame):
     sma = data_frame["close"].rolling(window=10).mean()  # Beräknar 10-perioders glidande medelvärde
     data_frame["sma_10"] = (data_frame["close"] - sma) / sma  # Skapar en ny kolumn för den normaliserade skillnaden mellan stängningspriset och det glidande medelvärdet
     data_frame["volatility"] = data_frame["returns"].rolling(window=10).std()  # Skapar en ny kolumn för volatilitet
+    data_frame["rsi"] = ta.momentum.RSIIndicator(data_frame["close"], window=14).rsi()  # Skapar en ny kolumn för RSI-indikatorn
     data_frame.dropna(inplace=True)  # Tar bort rader med NaN-värden
     print(data_frame.head(rows))  # Visar de första 5 raderna av DataFrame med nya funktioner
     return data_frame  # Returnerar DataFrame med nya funktioner
@@ -59,7 +60,7 @@ def create_labels(data_frame):
     return data_frame  # Returnerar DataFrame med målvariabeln
 
 def split_data(data_frame):
-    X = data_frame[["returns", "sma_10", "volatility"]]  # Funktioner
+    X = data_frame[["returns", "sma_10", "volatility", "rsi"]]  # Funktioner
     Y = data_frame["target"]  # Målvariabel
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=False) # Delar upp data i tränings- och testset utan att blanda ordningen
     print(X_train.shape, X_test.shape)
