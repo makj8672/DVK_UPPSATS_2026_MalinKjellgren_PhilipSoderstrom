@@ -2,6 +2,7 @@
 import MetaTrader5 as mt5
 import pandas as pd
 import ta
+import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
@@ -14,8 +15,9 @@ count = 5000  # Antal datapunkter att hämta
 rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
 forward_hours = 24  # Antal timmar framåt för att skapa målvariabeln
+max_spread = 10  # Maximal spread i punkter för att filtrera bort datapunkter med hög spread
 
-def get_data():
+def get_data(bars=count):
 
     if not mt5.initialize():
         print("initialize() failed, error code =", mt5.last_error())
@@ -24,7 +26,7 @@ def get_data():
     print("Connected to MetaTrader 5")  # Bekräftar anslutningen
     print(mt5.terminal_info())  # Skriver ut terminalinfo
 
-    data = mt5.copy_rates_from_pos(symbol, timeframe, start_pos, count)  # Hämtar data från MetaTrader 5
+    data = mt5.copy_rates_from_pos(symbol, timeframe, start_pos, bars)  # Hämtar data från MetaTrader 5
 
     if data is None or len(data) == 0:
         print("No data retrieved, error code =", mt5.last_error())
@@ -75,7 +77,9 @@ def train_model(X_train, X_test, Y_train):
     model = LogisticRegression(class_weight="balanced")  # Skapar en logistisk regressionsmodell
     model.fit(X_train_scaled, Y_train)  # Tränar modellen på träningsdata
     print("Model trained successfully")  # Bekräftar att modellen har tränats
-    return model, X_test_scaled  # Returnerar den tränade modellen och skalad testdata
+    joblib.dump(model, "logistic_model.pkl")  # Sparar den tränade modellen till en fil
+    joblib.dump(scaler, "scaler.pkl")  # Sparar scalern till en fil
+    return model, scaler, X_test_scaled  # Returnerar den tränade modellen och skalad testdata
 
 def evaluate_model(model, X_test_scaled, Y_test):
     Y_pred = model.predict(X_test_scaled)  # Gör förutsägelser på testdata
@@ -83,15 +87,40 @@ def evaluate_model(model, X_test_scaled, Y_test):
     print(confusion_matrix(Y_test, Y_pred))  # Visar förvirringsmat
     print(classification_report(Y_test, Y_pred, zero_division=0))  # Visar en klassificeringsrapport
 
+def predict_next(): # Funktion för att göra en förutsägelse baserat på en redan tränad modell
+    model = joblib.load("logistic_model.pkl")  # Laddar den tränade modellen
+    scaler = joblib.load("scaler.pkl")  # Laddar scalern
+    count_new_data = 100    
+    data_frame = get_data(count_new_data)
+    data_frame = prepare_data(data_frame)
+    data_frame = create_features(data_frame)
+    latest = data_frame[["returns", "sma_10", "volatility", "rsi"]].iloc[-1:]
+    latest_scaled = scaler.transform(latest)
+    prediction = model.predict(latest_scaled)
+    probability = model.predict_proba(latest_scaled)
+    direction = "UPP" if prediction[0] == 1 else "NER"
+    confidence = probability[0][prediction[0]] * 100
+    print(f"Förutsägelse: {direction} ({confidence:.1f}% konfidens)")
+
+def filter_data(data_frame):
+    rows_before = len(data_frame)
+    data_frame = data_frame[data_frame.index.dayofweek < 5]  # Filtrerar bort helgdagar
+    data_frame = data_frame[data_frame["spread"] <= max_spread]  # Filtrerar bort datapunkter med hög spread
+    rows_after = len(data_frame)
+    print(f"Data points removed by filtering: {rows_before - rows_after}")
+    return data_frame  # Returnerar den filtrerade DataFrame
+
 if __name__ == "__main__":
     print("Starting data pipeline...")
-    data_frame = get_data()
+    data_frame = get_data(count)
     data_frame = prepare_data(data_frame)
+    data_frame = filter_data(data_frame)
     data_frame = create_features(data_frame)
     data_frame = create_labels(data_frame)
     X_train, X_test, Y_train, Y_test = split_data(data_frame)
-    model, X_test_scaled = train_model(X_train, X_test, Y_train)
+    model, scaler, X_test_scaled = train_model(X_train, X_test, Y_train)
     evaluate_model(model, X_test_scaled, Y_test)
 
     print("Data retrieval completed.")
     print("Data pipeline completed.")
+    predict_next()
