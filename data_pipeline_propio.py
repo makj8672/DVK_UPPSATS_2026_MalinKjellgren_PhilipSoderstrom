@@ -20,6 +20,7 @@ rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
 forward_hours = 24  # Antal timmar framåt för att skapa målvariabeln
 #max_spread = 20  # Maximal spread i punkter för att filtrera bort datapunkter med hög spread
+stop_loss_pct = 2.0  # Stäng positionen om förlusten överstiger 2%
 
 def get_data(bars=count):
 
@@ -139,6 +140,57 @@ def filter_data(data_frame):
     print(f"Data points removed by filtering: {rows_before - rows_after}")
     return data_frame  # Returnerar den filtrerade DataFrame
 
+def backtest(data_frame, model, scaler):
+    test_data = data_frame.iloc[int(len(data_frame) * 0.8):]  # Använder de sista 20% av data som testdata
+
+    trades = []
+
+    for i in range(len(test_data) - forward_hours):
+        row = test_data.iloc[i]
+        features = pd.DataFrame([[row["price_to_sma200"], row["sma_cross"], row["rsi"], row["OBV"]]], columns=["price_to_sma200", "sma_cross", "rsi", "OBV"]) # Funktioner för den aktuella raden
+        features_scaled = scaler.transform(features)  # Skalar funktionerna
+        prediction = model.predict(features_scaled)[0]  # Gör en förutsägelse
+
+        if prediction == 1:
+            entry_price = row["close"]
+            exit_price = entry_price  # Default om inget annat triggar
+    
+            for h in range(1, forward_hours + 1):
+                if i + h >= len(test_data):
+                    break
+                current_price = test_data.iloc[i + h]["close"]
+                current_return = (current_price - entry_price) / entry_price * 100
+        
+                if current_return <= -stop_loss_pct:  # Stop-loss triggad
+                    exit_price = current_price
+                    break
+        
+                if h == forward_hours:  # Normal exit efter 24h
+                    exit_price = current_price
+    
+            return_pct = (exit_price - entry_price) / entry_price * 100
+            trades.append(return_pct)
+
+    if len(trades) == 0:
+        print("Inga trades gjordes under testperioden.")
+        return
+
+    total_trades = len(trades)
+    winning_trades = sum(1 for t in trades if t > 0)
+    win_rate = winning_trades / total_trades * 100
+    total_return = sum(trades)
+    avg_return = total_return / total_trades
+
+    print(f"\n--- Backtest-resultat ---")
+    print(f"Antal trades:        {total_trades}")
+    print(f"Vinnande trades:     {winning_trades} ({win_rate:.1f}%)")
+    print(f"Genomsnittlig trade: {avg_return:.2f}%")
+    print(f"Total avkastning:    {total_return:.2f}%")
+    print(f"Bästa trade:         {max(trades):.2f}%")
+    print(f"Sämsta trade:        {min(trades):.2f}%")
+
+
+
 if __name__ == "__main__":
     print("Starting data pipeline...")
     data_frame = get_data(count)
@@ -153,3 +205,4 @@ if __name__ == "__main__":
     print("Data retrieval completed.")
     print("Data pipeline completed.")
     predict_next()
+    backtest(data_frame, model, scaler)
