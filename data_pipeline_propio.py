@@ -20,7 +20,8 @@ rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
 forward_hours = 24  # Antal timmar framåt för att skapa målvariabeln
 #max_spread = 20  # Maximal spread i punkter för att filtrera bort datapunkter med hög spread
-stop_loss_pct = 2.0  # Stäng positionen om förlusten överstiger 2%
+stop_loss_pct = 1.0  # Stäng positionen om förlusten överstiger 1%
+take_profit_pct = 2.0  # Stäng positionen om vinsten överstiger 2%
 
 def get_data(bars=count):
 
@@ -117,20 +118,29 @@ def evaluate_model(model, X_test_scaled, Y_test):
     for name, coef in zip(feature_names, coefficients):
         print(f"{name}: {coef:.3f}")
 
-def predict_next(): # Funktion för att göra en förutsägelse baserat på en redan tränad modell
+def predict_next(mode="live", backtest_row=None): # Funktion för att göra en förutsägelse baserat på en redan tränad modell
     model = joblib.load("logistic_model.pkl")  # Laddar den tränade modellen
     scaler = joblib.load("scaler.pkl")  # Laddar scalern
-    count_new_data = 300    
-    data_frame = get_data(count_new_data)
-    data_frame = prepare_data(data_frame)
-    data_frame = create_features(data_frame)
-    latest = data_frame[["price_to_sma200", "sma_cross", "rsi", "OBV"]].iloc[-1:]
+    
+    if mode == "live":
+        data_frame = get_data(bars=300)  # Hämtar de senaste 300 datapunkterna
+        data_frame = prepare_data(data_frame)  # Förbereder datan
+        data_frame = create_features(data_frame)  # Skapar funktioner
+        latest = data_frame[["price_to_sma200", "sma_cross", "rsi", "OBV"]].iloc[-1:]  # Tar den senaste raden med funktioner
+
+    elif mode == "backtest":
+        latest = backtest_row[["price_to_sma200", "sma_cross", "rsi", "OBV"]].to_frame().T  # Tar den aktuella raden från backtestdata    
+    
     latest_scaled = scaler.transform(latest)
-    prediction = model.predict(latest_scaled)
+    prediction = model.predict(latest_scaled)[0]
     probability = model.predict_proba(latest_scaled)
-    direction = "UPP" if prediction[0] == 1 else "NER"
-    confidence = probability[0][prediction[0]] * 100
-    print(f"Förutsägelse: {direction} ({confidence:.1f}% konfidens)")
+    confidence = probability[0][prediction] * 100
+    
+    if mode == "live":
+        direction = "UPP" if prediction == 1 else "NER"
+        print(f"Förutsägelse: {direction} ({confidence:.1f}% konfidens)")
+    
+    return prediction, confidence
 
 def filter_data(data_frame):
     rows_before = len(data_frame)
@@ -142,14 +152,15 @@ def filter_data(data_frame):
 
 def backtest(data_frame, model, scaler):
     test_data = data_frame.iloc[int(len(data_frame) * 0.8):]  # Använder de sista 20% av data som testdata
-
     trades = []
 
     for i in range(len(test_data) - forward_hours):
         row = test_data.iloc[i]
-        features = pd.DataFrame([[row["price_to_sma200"], row["sma_cross"], row["rsi"], row["OBV"]]], columns=["price_to_sma200", "sma_cross", "rsi", "OBV"]) # Funktioner för den aktuella raden
-        features_scaled = scaler.transform(features)  # Skalar funktionerna
-        prediction = model.predict(features_scaled)[0]  # Gör en förutsägelse
+        prediction, confidence = predict_next(mode="backtest", backtest_row=row)  # Gör en förutsägelse för den aktuella raden
+        
+        #features = pd.DataFrame([[row["price_to_sma200"], row["sma_cross"], row["rsi"], row["OBV"]]], columns=["price_to_sma200", "sma_cross", "rsi", "OBV"]) # Funktioner för den aktuella raden
+        #features_scaled = scaler.transform(features)  # Skalar funktionerna
+        #prediction = model.predict(features_scaled)[0]  # Gör en förutsägelse
 
         if prediction == 1:
             entry_price = row["close"]
@@ -162,6 +173,10 @@ def backtest(data_frame, model, scaler):
                 current_return = (current_price - entry_price) / entry_price * 100
         
                 if current_return <= -stop_loss_pct:  # Stop-loss triggad
+                    exit_price = current_price
+                    break
+
+                if current_return >= take_profit_pct:  # Take-profit triggad
                     exit_price = current_price
                     break
         
@@ -189,7 +204,52 @@ def backtest(data_frame, model, scaler):
     print(f"Bästa trade:         {max(trades):.2f}%")
     print(f"Sämsta trade:        {min(trades):.2f}%")
 
+def place_order(prediction, confidence):
+    if prediction != 1:
+        print("Ingen köpsignal – ingen order skickad.")
+        return
+    
+    if confidence < 70:
+        print(f"För låg konfidens ({confidence:.1f}%) – ingen order skickad.")
+        return
 
+    if not mt5.initialize():
+        print("Kunde inte ansluta till MT5")
+        return
+
+    tick = mt5.symbol_info_tick(symbol)
+    price = tick.ask
+
+    sl = price * (1 - stop_loss_pct / 100)
+    tp = price * (1 + take_profit_pct / 100)
+
+    request = {
+        "action":       mt5.TRADE_ACTION_DEAL,
+        "symbol":       symbol,
+        "volume":       0.01,
+        "type":         mt5.ORDER_TYPE_BUY,
+        "price":        price,
+        "sl":           round(sl, 2),
+        "tp":           round(tp, 2),
+        "deviation":    20,
+        "magic":        12345,
+        "comment":      "ML strategy",
+        "type_time":    mt5.ORDER_TIME_GTC,
+        "type_filling": mt5.ORDER_FILLING_IOC,
+    }
+
+    result = mt5.order_send(request)
+
+    if result.retcode == mt5.TRADE_RETCODE_DONE:
+        print(f"Order genomförd!")
+        print(f"Inträde:     {price:.2f}")
+        print(f"Stop-loss:   {sl:.2f}")
+        print(f"Take-profit: {tp:.2f}")
+    else:
+        print(f"Order misslyckades – kod: {result.retcode}")
+        print(f"Felmeddelande: {result.comment}")
+
+    mt5.shutdown()
 
 if __name__ == "__main__":
     print("Starting data pipeline...")
@@ -204,5 +264,6 @@ if __name__ == "__main__":
     cross_validate_model(X_train, Y_train)
     print("Data retrieval completed.")
     print("Data pipeline completed.")
-    predict_next()
+    prediction, confidence = predict_next(mode = "live")
+    place_order(prediction, confidence)
     backtest(data_frame, model, scaler)
