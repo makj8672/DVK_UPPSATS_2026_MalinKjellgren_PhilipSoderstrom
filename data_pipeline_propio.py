@@ -204,6 +204,25 @@ def backtest(data_frame, model, scaler):
     print(f"Bästa trade:         {max(trades):.2f}%")
     print(f"Sämsta trade:        {min(trades):.2f}%")
 
+def calculate_lot_size():
+    account = mt5.account_info()
+    balance = account.balance
+    
+    risk_amount = balance * 0.01
+    tick = mt5.symbol_info_tick(symbol)
+    price = tick.ask
+    
+    loss_per_lot = price * (stop_loss_pct / 100) * 100
+    lot_size = risk_amount / loss_per_lot
+    lot_size = round(lot_size, 2)
+    lot_size = max(lot_size, 0.01)
+    
+    print(f"Kontosaldo:  ${balance:.2f}")
+    print(f"Riskbelopp:  ${risk_amount:.2f}")
+    print(f"Lot-storlek: {lot_size}")
+    
+    return lot_size
+
 def place_order(prediction, confidence):
     if prediction != 1:
         print("Ingen köpsignal – ingen order skickad.")
@@ -226,7 +245,7 @@ def place_order(prediction, confidence):
     request = {
         "action":       mt5.TRADE_ACTION_DEAL,
         "symbol":       symbol,
-        "volume":       0.01,
+        "volume":       calculate_lot_size(),
         "type":         mt5.ORDER_TYPE_BUY,
         "price":        price,
         "sl":           round(sl, 2),

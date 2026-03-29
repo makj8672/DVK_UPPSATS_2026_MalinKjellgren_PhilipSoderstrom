@@ -23,8 +23,14 @@ if __name__ == "__main__":
     print("Startar live trading...")
     run_strategy()  # Kör strategin direkt vid start
 
-    schedule.every().hour.at(":00").do(run_strategy)
+    schedule.every().hour.at(":01").do(run_strategy)
     
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
+    print("Tryck Ctrl+C för att avsluta.")
+    
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+    except KeyboardInterrupt:
+        print("\nLive trader avslutad.")
+        mt5.shutdown()
