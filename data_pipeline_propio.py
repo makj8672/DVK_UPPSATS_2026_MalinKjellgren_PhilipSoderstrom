@@ -11,6 +11,14 @@ from sklearn.linear_model import LogisticRegression
 #from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+import logging
+
+logging.basicConfig(
+    filename="live_trader.log",
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    encoding="utf-8"
+)
 
 symbol = "XAUUSD"  # Valutaparet du vill hämta data för
 timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill häm
@@ -124,6 +132,9 @@ def predict_next(mode="live", backtest_row=None): # Funktion för att göra en f
     
     if mode == "live":
         data_frame = get_data(bars=300)  # Hämtar de senaste 300 datapunkterna
+        if data_frame is None:
+            logging.warning("Kunde inte hämta data – hoppar över körning.")
+            return None, 0
         data_frame = prepare_data(data_frame)  # Förbereder datan
         data_frame = create_features(data_frame)  # Skapar funktioner
         latest = data_frame[["price_to_sma200", "sma_cross", "rsi", "OBV"]].iloc[-1:]  # Tar den senaste raden med funktioner
@@ -206,10 +217,18 @@ def backtest(data_frame, model, scaler):
 
 def calculate_lot_size():
     account = mt5.account_info()
+    if account is None:
+        logging.warning("Kunde inte hämta kontoinformation – använder minsta lot.")
+        return 0.01
+
     balance = account.balance
     
     risk_amount = balance * 0.01
     tick = mt5.symbol_info_tick(symbol)
+    if tick is None:
+        logging.warning("Kunde inte hämta prisinformation – använder minsta lot.")
+        return 0.01
+
     price = tick.ask
     
     loss_per_lot = price * (stop_loss_pct / 100) * 100
@@ -235,7 +254,26 @@ def place_order(prediction, confidence):
     if not mt5.initialize():
         print("Kunde inte ansluta till MT5")
         return
+    
+    # Symbolkontroll
+    symbol_info = mt5.symbol_info(symbol)
+    if symbol_info is None:
+        logging.error(f"Symbol {symbol} hittades inte.")
+        mt5.shutdown()
+        return
 
+    if not symbol_info.visible:
+        logging.info(f"Aktiverar symbol {symbol}.")
+        mt5.symbol_select(symbol, True)
+
+    # Kolla om det redan finns en öppen position
+    positions = mt5.positions_get(symbol=symbol)
+    if positions and len(positions) > 0:
+        logging.info(f"Redan {len(positions)} öppen position – ingen ny order skickad.")
+        print(f"Redan öppen position – ingen ny order skickad.")
+        mt5.shutdown()
+        return
+    
     tick = mt5.symbol_info_tick(symbol)
     price = tick.ask
 
@@ -260,11 +298,13 @@ def place_order(prediction, confidence):
     result = mt5.order_send(request)
 
     if result.retcode == mt5.TRADE_RETCODE_DONE:
+        logging.info(f"Order genomförd! Inträde: {price:.2f} SL: {sl:.2f} TP: {tp:.2f}")
         print(f"Order genomförd!")
         print(f"Inträde:     {price:.2f}")
         print(f"Stop-loss:   {sl:.2f}")
         print(f"Take-profit: {tp:.2f}")
     else:
+        logging.error(f"Order misslyckades – kod: {result.retcode} {result.comment}")
         print(f"Order misslyckades – kod: {result.retcode}")
         print(f"Felmeddelande: {result.comment}")
 

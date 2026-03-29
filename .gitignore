@@ -4,6 +4,7 @@ logistic_model.pkl
 scaler.pkl
 __pycache__/
 *.pyc
+live_trader.log
 
 
 # Byte-compiled / optimized / DLL files
