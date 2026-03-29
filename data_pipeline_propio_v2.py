@@ -7,30 +7,30 @@ import ta
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-#from sklearn.ensemble import RandomForestClassifier
+#from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 import logging
 
 logging.basicConfig(
-    filename="live_trader.log",
+    filename="live_trader_v2.log",
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
     encoding="utf-8"
 )
 
 symbol = "XAUUSD"  # Valutaparet du vill hämta data för
-timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill häm
+timeframe = mt5.TIMEFRAME_H1  # Tidsram för datan (15-minuters intervall)
 start_pos = 0  # Startpositionen för att hämta data
-count = 5000  # Antal datapunkter att hämta
+count = 15000  # Antal datapunkter att hämta
 rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
-forward_hours = 24  # Antal timmar framåt för att skapa målvariabeln
+forward_bars = 4  # Antal timmar framåt för att skapa målvariabeln
 #max_spread = 20  # Maximal spread i punkter för att filtrera bort datapunkter med hög spread
 stop_loss_pct = 1.0  # Stäng positionen om förlusten överstiger 1%
 take_profit_pct = 2.0  # Stäng positionen om vinsten överstiger 2%
-strategy_name = "SMA50/200"
+strategy_name = "SMA20/50"
 
 def get_data(bars=count):
 
@@ -63,12 +63,12 @@ def prepare_data(data_frame):
 
 def create_features(data_frame):
 
+    sma20 = data_frame["close"].rolling(window=20).mean()  # Beräknar 20-perioders glidande medelvärde
     sma50 = data_frame["close"].rolling(window=50).mean()  # Beräknar 50-perioders glidande medelvärde
-    sma200 = data_frame["close"].rolling(window=200).mean()  # Beräknar 200-perioders glidande medelvärde
     #data_frame["sma_50"] = (data_frame["close"] - sma50) / sma50  # Skapar en ny kolumn för den normaliserade skillnaden mellan stängningspriset och det glidande medelvärdet
     #data_frame["sma_200"] = (data_frame["close"] - sma200) / sma200  # Skapar en ny kolumn för den normaliserade skillnaden mellan stängningspriset och det glidande medelvärdet
-    data_frame["price_to_sma200"] = (data_frame["close"] - sma200) / sma200  # Skapar en ny kolumn för priset i förhållande till SMA200
-    data_frame["sma_cross"] = (sma50 - sma200) / sma200  # Skapar en ny kolumn för skillnaden mellan SMA50 och SMA200
+    data_frame["price_to_sma50"] = (data_frame["close"] - sma50) / sma50  # Skapar en ny kolumn för priset i förhållande till SMA50
+    data_frame["sma_cross"] = (sma20 - sma50) / sma50  # Skapar en ny kolumn för skillnaden mellan SMA20 och SMA50
     data_frame["rsi"] = ta.momentum.RSIIndicator(data_frame["close"], window=14).rsi()  # Skapar en ny kolumn för RSI-indikatorn
     data_frame["OBV"] = ta.volume.OnBalanceVolumeIndicator(data_frame["close"], data_frame["tick_volume"].astype(int64)).on_balance_volume()  # Skapar en ny kolumn för OBV-indikatorn
     data_frame.dropna(inplace=True)  # Tar bort rader med NaN-värden
@@ -76,9 +76,9 @@ def create_features(data_frame):
     return data_frame  # Returnerar DataFrame med nya funktioner
 
 def create_labels(data_frame):
-    cond1 = data_frame["price_to_sma200"] > 0          # Pris över SMA200
-    cond2 = data_frame["sma_cross"] > 0   # SMA50 över SMA200
-    cond3 = (data_frame["rsi"] >= 35) & (data_frame["rsi"] <= 65)  # RSI neutralt
+    cond1 = data_frame["price_to_sma50"] > 0  # Pris över SMA50
+    cond2 = data_frame["sma_cross"] > 0   # SMA20 över SMA50
+    cond3 = (data_frame["rsi"] >= 40) & (data_frame["rsi"] <= 60)  # RSI mellan 40 och 60
     cond4 = data_frame["OBV"].diff() > 0        # OBV stiger
 
     data_frame["target"] = (cond1 & cond2 & cond3 & cond4).astype(int)
@@ -86,7 +86,7 @@ def create_labels(data_frame):
     return data_frame
 
 def split_data(data_frame):
-    X = data_frame[["price_to_sma200", "sma_cross", "rsi", "OBV"]]  # Funktioner
+    X = data_frame[["price_to_sma50", "sma_cross", "rsi", "OBV"]]  # Funktioner
     Y = data_frame["target"]  # Målvariabel
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=False) # Delar upp data i tränings- och testset utan att blanda ordningen
     print(X_train.shape, X_test.shape)
@@ -97,18 +97,19 @@ def train_model(X_train, X_test, Y_train):
     X_train_scaled = scaler.fit_transform(X_train)  # Skalar träningsdata
     X_test_scaled = scaler.transform(X_test)  # Skalar testdata
 
-    model = LogisticRegression(class_weight="balanced")  # Skapar en logistisk regressionsmodell
-    #model = RandomForestClassifier(class_weight="balanced", n_estimators=100, random_state=42)  # Skapar en Random Forest-klassificerare
+    #model = LogisticRegression(class_weight="balanced")  # Skapar en logistisk regressionsmodell
+    model = RandomForestClassifier(class_weight="balanced", n_estimators=100, random_state=42)  # Skapar en Random Forest-klassificerare
     model.fit(X_train_scaled, Y_train)  # Tränar modellen på träningsdata
     print("Model trained successfully")  # Bekräftar att modellen har tränats
-    joblib.dump(model, "logistic_model.pkl")  # Sparar den tränade modellen till en fil
-    joblib.dump(scaler, "scaler.pkl")  # Sparar scalern till en fil
+    joblib.dump(model, "logistic_model_v2.pkl")  # Sparar den tränade modellen till en fil
+    joblib.dump(scaler, "scaler_v2.pkl")  # Sparar scalern till en fil
     return model, scaler, X_test_scaled  # Returnerar den tränade modellen och skalad testdata
 
 def cross_validate_model(X, Y):
     pipe = Pipeline([
         ("scaler", StandardScaler()),
-        ("model", LogisticRegression(class_weight="balanced"))
+        #("model", LogisticRegression(class_weight="balanced"))
+        ("model", RandomForestClassifier(class_weight="balanced", n_estimators=100, random_state=42))
     ])
     tscv = TimeSeriesSplit(n_splits=5)
     scores = cross_val_score(pipe, X, Y, cv=tscv, scoring="accuracy")
@@ -122,14 +123,19 @@ def evaluate_model(model, X_test_scaled, Y_test):
     print(confusion_matrix(Y_test, Y_pred))
     print(classification_report(Y_test, Y_pred, zero_division=0))
     
-    feature_names = ["sma_50", "sma_200", "rsi", "OBV"]
-    coefficients = model.coef_[0]
-    for name, coef in zip(feature_names, coefficients):
-        print(f"{name}: {coef:.3f}")
+    feature_names = ["price_to_sma50", "sma_cross", "rsi", "OBV"]
+    
+    importances = model.feature_importances_
+    for name, importance in zip(feature_names, importances):
+        print(f"{name}: {importance:.3f}")
+    
+    #coefficients = model.coef_[0]
+    #for name, coef in zip(feature_names, coefficients):
+    #    print(f"{name}: {coef:.3f}")
 
 def predict_next(mode="live", backtest_row=None): # Funktion för att göra en förutsägelse baserat på en redan tränad modell
-    model = joblib.load("logistic_model.pkl")  # Laddar den tränade modellen
-    scaler = joblib.load("scaler.pkl")  # Laddar scalern
+    model = joblib.load("logistic_model_v2.pkl")  # Laddar den tränade modellen
+    scaler = joblib.load("scaler_v2.pkl")  # Laddar scalern
     
     if mode == "live":
         data_frame = get_data(bars=300)  # Hämtar de senaste 300 datapunkterna
@@ -138,10 +144,10 @@ def predict_next(mode="live", backtest_row=None): # Funktion för att göra en f
             return None, 0
         data_frame = prepare_data(data_frame)  # Förbereder datan
         data_frame = create_features(data_frame)  # Skapar funktioner
-        latest = data_frame[["price_to_sma200", "sma_cross", "rsi", "OBV"]].iloc[-1:]  # Tar den senaste raden med funktioner
+        latest = data_frame[["price_to_sma50", "sma_cross", "rsi", "OBV"]].iloc[-1:]  # Tar den senaste raden med funktioner
 
     elif mode == "backtest":
-        latest = backtest_row[["price_to_sma200", "sma_cross", "rsi", "OBV"]].to_frame().T  # Tar den aktuella raden från backtestdata    
+        latest = backtest_row[["price_to_sma50", "sma_cross", "rsi", "OBV"]].to_frame().T  # Tar den aktuella raden från backtestdata    
     
     latest_scaled = scaler.transform(latest)
     prediction = model.predict(latest_scaled)[0]
@@ -166,7 +172,7 @@ def backtest(data_frame, model, scaler):
     test_data = data_frame.iloc[int(len(data_frame) * 0.8):]  # Använder de sista 20% av data som testdata
     trades = []
 
-    for i in range(len(test_data) - forward_hours):
+    for i in range(len(test_data) - forward_bars):
         row = test_data.iloc[i]
         prediction, confidence = predict_next(mode="backtest", backtest_row=row)  # Gör en förutsägelse för den aktuella raden
         
@@ -178,7 +184,7 @@ def backtest(data_frame, model, scaler):
             entry_price = row["close"]
             exit_price = entry_price  # Default om inget annat triggar
     
-            for h in range(1, forward_hours + 1):
+            for h in range(1, forward_bars + 1):
                 if i + h >= len(test_data):
                     break
                 current_price = test_data.iloc[i + h]["close"]
@@ -192,7 +198,7 @@ def backtest(data_frame, model, scaler):
                     exit_price = current_price
                     break
         
-                if h == forward_hours:  # Normal exit efter 24h
+                if h == forward_bars:  # Normal exit efter 24h
                     exit_price = current_price
     
             return_pct = (exit_price - entry_price) / entry_price * 100
@@ -290,7 +296,7 @@ def place_order(prediction, confidence):
         "sl":           round(sl, 2),
         "tp":           round(tp, 2),
         "deviation":    20,
-        "magic":        12345,
+        "magic":        12346,
         "comment":      "ML strategy",
         "type_time":    mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_IOC,
