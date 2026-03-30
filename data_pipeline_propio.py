@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 
 symbol = "XAUUSD"  # Valutaparet du vill hämta data för
-timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill häm
+timeframe = mt5.TIMEFRAME_H1  # Tidsramen du vill hämta
 start_pos = 0  # Startpositionen för att hämta data
 count = 5000  # Antal datapunkter att hämta
 rows = 5  # Antal rader att visa i DataFrame
