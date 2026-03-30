@@ -311,6 +311,47 @@ def place_order(prediction, confidence):
 
     mt5.shutdown()
 
+def close_old_positions():
+    if not mt5.initialize():
+        logging.error("Kunde inte ansluta till MT5 för att stänga positioner.")
+        return
+
+    positions = mt5.positions_get(symbol=symbol)
+    if not positions or len(positions) == 0:
+        mt5.shutdown()
+        return
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    for position in positions:
+        open_time = datetime.fromtimestamp(position.time, tz=timezone.utc)
+        hours_open = (now - open_time).total_seconds() / 3600
+
+        if hours_open >= forward_hours:
+            request = {
+                "action":       mt5.TRADE_ACTION_DEAL,
+                "symbol":       symbol,
+                "volume":       position.volume,
+                "type":         mt5.ORDER_TYPE_SELL,
+                "position":     position.ticket,
+                "price":        mt5.symbol_info_tick(symbol).bid,
+                "deviation":    20,
+                "magic":        12345,
+                "comment":      "ML strategy exit",
+                "type_time":    mt5.ORDER_TIME_GTC,
+                "type_filling": mt5.ORDER_FILLING_IOC,
+            }
+            result = mt5.order_send(request)
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                logging.info(f"Position stängd efter {hours_open:.1f} timmar. Ticket: {position.ticket}")
+                print(f"Position stängd efter {hours_open:.1f} timmar.")
+            else:
+                logging.error(f"Kunde inte stänga position – kod: {result.retcode}")
+                print(f"Kunde inte stänga position – kod: {result.retcode}")
+
+    mt5.shutdown()
+
 if __name__ == "__main__":
     print("Starting data pipeline...")
     data_frame = get_data(count)

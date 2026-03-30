@@ -8,7 +8,8 @@ from data_pipeline_propio import (
     prepare_data,
     create_features,
     predict_next,
-    place_order
+    place_order,
+    close_old_positions
 )
 
 def run_strategy():

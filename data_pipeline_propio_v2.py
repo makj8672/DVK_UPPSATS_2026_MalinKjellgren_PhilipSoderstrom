@@ -26,7 +26,7 @@ start_pos = 0  # Startpositionen för att hämta data
 count = 15000  # Antal datapunkter att hämta
 rows = 5  # Antal rader att visa i DataFrame
 data_frame = pd.DataFrame()  # Skapa en tom DataFrame för att lagra data
-forward_bars = 4  # Antal timmar framåt för att skapa målvariabeln
+forward_hours = 12  # Antal timmar framåt för att skapa målvariabeln
 #max_spread = 20  # Maximal spread i punkter för att filtrera bort datapunkter med hög spread
 stop_loss_pct = 1.0  # Stäng positionen om förlusten överstiger 1%
 take_profit_pct = 2.0  # Stäng positionen om vinsten överstiger 2%
@@ -78,7 +78,7 @@ def create_features(data_frame):
 def create_labels(data_frame):
     cond1 = data_frame["price_to_sma50"] > 0  # Pris över SMA50
     cond2 = data_frame["sma_cross"] > 0   # SMA20 över SMA50
-    cond3 = (data_frame["rsi"] >= 40) & (data_frame["rsi"] <= 60)  # RSI mellan 40 och 60
+    cond3 = (data_frame["rsi"] >= 35) & (data_frame["rsi"] <= 70)  # RSI mellan 35 och 70
     cond4 = data_frame["OBV"].diff() > 0        # OBV stiger
 
     data_frame["target"] = (cond1 & cond2 & cond3 & cond4).astype(int)
@@ -172,7 +172,7 @@ def backtest(data_frame, model, scaler):
     test_data = data_frame.iloc[int(len(data_frame) * 0.8):]  # Använder de sista 20% av data som testdata
     trades = []
 
-    for i in range(len(test_data) - forward_bars):
+    for i in range(len(test_data) - forward_hours):
         row = test_data.iloc[i]
         prediction, confidence = predict_next(mode="backtest", backtest_row=row)  # Gör en förutsägelse för den aktuella raden
         
@@ -184,7 +184,7 @@ def backtest(data_frame, model, scaler):
             entry_price = row["close"]
             exit_price = entry_price  # Default om inget annat triggar
     
-            for h in range(1, forward_bars + 1):
+            for h in range(1, forward_hours + 1):
                 if i + h >= len(test_data):
                     break
                 current_price = test_data.iloc[i + h]["close"]
@@ -198,7 +198,7 @@ def backtest(data_frame, model, scaler):
                     exit_price = current_price
                     break
         
-                if h == forward_bars:  # Normal exit efter 24h
+                if h == forward_hours:  # Normal exit efter 24h
                     exit_price = current_price
     
             return_pct = (exit_price - entry_price) / entry_price * 100
@@ -314,6 +314,47 @@ def place_order(prediction, confidence):
         logging.error(f"[{strategy_name}] Order misslyckades – kod: {result.retcode} {result.comment}")
         print(f"Order misslyckades – kod: {result.retcode}")
         print(f"Felmeddelande: {result.comment}")
+
+    mt5.shutdown()
+
+def close_old_positions():
+    if not mt5.initialize():
+        logging.error("Kunde inte ansluta till MT5 för att stänga positioner.")
+        return
+
+    positions = mt5.positions_get(symbol=symbol)
+    if not positions or len(positions) == 0:
+        mt5.shutdown()
+        return
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
+    for position in positions:
+        open_time = datetime.fromtimestamp(position.time, tz=timezone.utc)
+        hours_open = (now - open_time).total_seconds() / 3600
+
+        if hours_open >= forward_hours:
+            request = {
+                "action":       mt5.TRADE_ACTION_DEAL,
+                "symbol":       symbol,
+                "volume":       position.volume,
+                "type":         mt5.ORDER_TYPE_SELL,
+                "position":     position.ticket,
+                "price":        mt5.symbol_info_tick(symbol).bid,
+                "deviation":    20,
+                "magic":        12346,
+                "comment":      "ML strategy exit",
+                "type_time":    mt5.ORDER_TIME_GTC,
+                "type_filling": mt5.ORDER_FILLING_IOC,
+            }
+            result = mt5.order_send(request)
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                logging.info(f"Position stängd efter {hours_open:.1f} timmar. Ticket: {position.ticket}")
+                print(f"Position stängd efter {hours_open:.1f} timmar.")
+            else:
+                logging.error(f"Kunde inte stänga position – kod: {result.retcode}")
+                print(f"Kunde inte stänga position – kod: {result.retcode}")
 
     mt5.shutdown()
 
