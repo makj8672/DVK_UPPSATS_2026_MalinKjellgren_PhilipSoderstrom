@@ -15,6 +15,8 @@ import MetaTrader5 as mt5
 import pandas as pd
 import ta
 
+candle_amount = 5000
+
 def connect_to_mt5():
     if not mt5.initialize():
         raise ConnectionError(f"MT5 initialize() failed: {mt5.last_error()}")
@@ -30,7 +32,7 @@ def get_data():
         sys.exit(1)
 
     # Fetch XAU/USD data - last 5000 candles
-    rates = mt5.copy_rates_from_pos("XAUUSD", mt5.TIMEFRAME_H1, 0, 5000)
+    rates = mt5.copy_rates_from_pos("XAUUSD", mt5.TIMEFRAME_H1, 0, candle_amount)
 
     # Convert to pandas dataframe
     df = pd.DataFrame(rates)
