@@ -10,6 +10,7 @@
 # 6. Remove rows with missing values
 # 7. Return dataframe
 
+
 import sys
 import MetaTrader5 as mt5
 import pandas as pd
