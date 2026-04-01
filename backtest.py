@@ -1,3 +1,5 @@
+#backtest.py
+
 # Compare both strategies 
 
 # Psudo code: 
@@ -10,4 +12,5 @@
 #     Calculate win rate, profit factor,
 #     Sharpe ratio, max drawdown
 #     Return results
+
 

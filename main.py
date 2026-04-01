@@ -1,3 +1,4 @@
+#main.py
 # Runs everything
 
 # Psudo code: 
