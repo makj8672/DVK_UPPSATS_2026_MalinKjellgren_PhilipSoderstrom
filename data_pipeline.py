@@ -24,6 +24,11 @@ def connect_to_mt5():
         raise ConnectionError(f"MT5 initialize() failed: {mt5.last_error()}")
     print("Connected to MetaTrader 5")
 
+def create_features(df):
+    # TODO
+    return df
+    
+
 
 def get_data():
     # Connect to MetaTrader 5
