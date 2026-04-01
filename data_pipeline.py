@@ -15,7 +15,9 @@ import MetaTrader5 as mt5
 import pandas as pd
 import ta
 
-candle_amount = 5000
+SYMBOL = "XAUUSD"
+TIMEFRAME = mt5.TIMEFRAME_H1
+CANDLES = 5000
 
 def connect_to_mt5():
     if not mt5.initialize():
@@ -32,7 +34,7 @@ def get_data():
         sys.exit(1)
 
     # Fetch XAU/USD data - last 5000 candles
-    rates = mt5.copy_rates_from_pos("XAUUSD", mt5.TIMEFRAME_H1, 0, candle_amount)
+    rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 0, CANDLES)
 
     # Convert to pandas dataframe
     df = pd.DataFrame(rates)
