@@ -15,20 +15,56 @@
 #         ELSE:
 #             RETURN 0 (hold signal)
 
-#from sklearn.linear_model import LogisticRegression TODO: swith to this?
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+#import joblib TODO: Delete or save?
+
 from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
+    INDICATOR_COLUMNS = ["price_to_sma200", "sma_cross", "rsi", "OBV"]
+
     # Constructor
     def __init__(self, model=None, scaler=None):
         self.model = model
         self.scaler = scaler
 
     def train(self, data_frame):
-        # TODO: Implement training logic
-        pass
+        X = data_frame[self.INDICATOR_COLUMNS]
+        y = data_frame["target"]
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, shuffle=False
+            )
+        
+        self.scaler = StandardScaler()
+        X_train_scaled = self.scaler.fit_transform(X_train)
+        X_test_scaled = self.scaler.transform(X_test)
+
+        self.model = LogisticRegression(class_weight="balanced")
+        self.model.fit(X_train_scaled, y_train)
+
+        y_pred = self.model.predict(X_test_scaled)
+        accuracy = accuracy_score(y_test, y_pred)
+        print(f"Logistic Regression Accuracy: {accuracy:.2f}")
+
 
     def predict(self, row):
-        # TODO: Implement prediction logic
+        latest = row[self.INDICATOR_COLUMNS].to_frame().T
+        latest_scaled = self.scaler.transform(latest)
+        probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
+
+        if probability > 0.6:
+            return 1    # Buy signal
+        elif probability < 0.4:
+            return -1   # Sell signal
+        else:
+            return 0    # Hold signal
+
+
+    #TODO: Not needed if we split data in train method, but could be useful for backtesting on unseen data
+    def split_data(self, data_frame):
+        # TODO: Implement data splitting logic
         pass
-    
