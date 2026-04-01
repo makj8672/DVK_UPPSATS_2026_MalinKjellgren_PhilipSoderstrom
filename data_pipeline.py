@@ -10,17 +10,24 @@
 # 6. Remove rows with missing values
 # 7. Return dataframe
 
+import sys
 import MetaTrader5 as mt5
 import pandas as pd
 import ta
 
+def connect_to_mt5():
+    if not mt5.initialize():
+        raise ConnectionError(f"MT5 initialize() failed: {mt5.last_error()}")
+    print("Connected to MetaTrader 5")
+
+
 def get_data():
     # Connect to MetaTrader 5
-    if not mt5.initialize():
-        print("initialize() failed, error code =", mt5.last_error())
-        quit()  
-
-    print("Connected to MetaTrader 5")
+    try:
+        connect_to_mt5()
+    except ConnectionError as e:
+        print(e)
+        sys.exit(1)
 
     # Fetch XAU/USD data - last 5000 candles
     rates = mt5.copy_rates_from_pos("XAUUSD", mt5.TIMEFRAME_H1, 0, 5000)
