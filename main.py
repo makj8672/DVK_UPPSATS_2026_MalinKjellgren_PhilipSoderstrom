@@ -23,7 +23,7 @@ df = create_features(df)
 strategy_rule_based = RuleBasedStrategy()
 df = strategy_rule_based.create_labels(df)
 
-strategy_logistic_regression = LogisticRegressionStrategy(model=None) # TODO: add model
+strategy_logistic_regression = LogisticRegressionStrategy(model=None, scaler=None) # TODO: add model
 strategy_logistic_regression.train(df)
 
 results_rule_based = run_backtest(strategy_rule_based, df)

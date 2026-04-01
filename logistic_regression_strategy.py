@@ -18,8 +18,16 @@
 from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
-    def __init__(self, model):
+    # Constructor
+    def __init__(self, model=None, scaler=None):
         self.model = model
+        self.scaler = scaler
+
+    def train(self, data_frame):
+        # TODO: Implement training logic
         pass
 
+    def predict(self, row):
+        # TODO: Implement prediction logic
+        pass
     
