@@ -3,7 +3,7 @@
 
 # Psudo code: 
 # FUNCTION generate_signal(row):
-#     TODO
+# TODO
 
 class RuleBasedStrategy:
     # Runs on an individual row in real time or during backtest.
