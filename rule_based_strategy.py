@@ -18,6 +18,9 @@ class RuleBasedStrategy:
             return 1    # Buy signal
         return 0        # Hold signal
 
+    def get_probability(self, row):
+        return None
+
     # Runs through the entire dataframe during the "training of the modell"
     # Denna funktion passar eventuellt bättre under create_features eller create_labels i data_pipeline.py
     # def create_labels(self, data_frame):

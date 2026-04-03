@@ -15,7 +15,7 @@
 from data_pipeline import create_target, get_data, create_features, clean_data
 from rule_based_strategy import RuleBasedStrategy
 from logistic_regression_strategy import LogisticRegressionStrategy
-from backtest import run_backtest
+from backtest import run_backtest, run_backtest_all_intervals
 from backtest_result import BacktestResult
 
 
@@ -53,8 +53,6 @@ if __name__ == "__main__":
     else:
         print("RuleBasedStrategy: No trades executed during test period.")
     
-    if trades_logistic_regression is not None:
-        results_logistic_regression = BacktestResult(trades_logistic_regression, "LogisticRegressionStrategy")
-        results_logistic_regression.print_results()
-    else:
-        print("LogisticRegressionStrategy: No trades executed during test period.")
+    # Backtesting LogistcRegressionStrategy per interval
+    interval_results = run_backtest_all_intervals(strategy_logistic_regression, df)
+    BacktestResult.print_interval_table(interval_results)

@@ -68,6 +68,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         else:
             return 0    # Hold signal
 
+    def get_probability(self, row):
+        """Return raw probability for interval-based backtesting."""
+        latest = row[self.INDICATOR_COLUMNS].to_frame().T
+        latest_scaled = self.scaler.transform(latest)
+        return self.model.predict_proba(latest_scaled)[0][1]
+
 
     #TODO: Not needed if we split data in train method, but could be useful for backtesting on unseen data
     def split_data(self, data_frame):

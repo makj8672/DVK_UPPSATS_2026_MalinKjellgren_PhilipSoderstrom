@@ -41,3 +41,17 @@ class BacktestResult:
         print(f"Sämsta trade:        {self.worst_trade:.2f}%")
         print(f"Sharpe ratio:        {self.sharpe_ratio:.2f}")
         print(f"Max drawdown:        {self.max_drawdown:.2f}%")
+
+    @classmethod
+    def print_interval_table(cls, interval_results):
+        """Print a summary table of backtest results per probability interval."""
+        print(f"\n{'Intervall':<12} {'Trades':<8} {'Win rate':<10} {'Avg return':<12} {'Sharpe':<8} {'Drawdown':<10}")
+        print("-" * 60)
+        
+        for label, trades in interval_results.items():
+            if trades is None:
+                print(f"{label:<12} {'Inga trades':<8}")
+                continue
+            
+            result = cls(trades, label)
+            print(f"{label:<12} {result.total_trades:<8} {result.win_rate:<10.1f} {result.avg_return:<12.2f} {result.sharpe_ratio:<8.2f} {result.max_drawdown:<10.2f}")
