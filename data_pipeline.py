@@ -25,10 +25,36 @@ def connect_to_mt5():
         raise ConnectionError(f"MT5 initialize() failed: {mt5.last_error()}")
     print("Connected to MetaTrader 5")
 
+
 def create_features(df):
-    # TODO
-    return df
+    """Create features for machine learning model.
     
+    Calculates SMA50 and SMA200 internally to derive the following features:
+    - price_to_sma200: how far price is from SMA200, as a ratio
+    - sma_cross: difference between SMA50 and SMA200, as a ratio
+    - rsi: Relative Strength Index (14 periods)
+    - obv: On Balance Volume
+
+    TODO: These features are likely suboptimal, we should experiment with adding or replacing them.
+    """
+    sma50 = df['close'].rolling(window=50).mean()
+    sma200 = df['close'].rolling(window=200).mean()
+    df["price_to_sma200"] = (df['close'] - sma200) / sma200
+    df["sma_cross"] = (sma50 - sma200) / sma200
+    df["rsi"] = ta.momentum.RSIIndicator(df['close'], window=14).rsi()
+    df["obv"] = ta.volume.OnBalanceVolumeIndicator(df['close'], df['tick_volume']).on_balance_volume()
+    return df
+
+def create_target(df):
+    """Create target variable for machine learning model. 
+    We are trying to predict if the price will go up in the next hour."""
+    df["target"] = (df["close"].shift(-1) > df["close"]).astype(int) # Shift close price by -1 to get next hour's price and create binary target
+    return df
+
+def clean_data(df):
+    """Remove rows with missing values."""
+    df = df.dropna() # Drop rows with missing values
+    return df
 
 
 def get_data():
