@@ -1,3 +1,7 @@
+# png-s created by xauusd_trading.py and the file itself
+*.png
+xauusd_trading.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
