@@ -12,7 +12,7 @@
 
 # Compare and print results
 
-from data_pipeline import get_data, create_features
+from data_pipeline import create_target, get_data, create_features, clean_data
 from rule_based_strategy import RuleBasedStrategy
 from logistic_regression_strategy import LogisticRegressionStrategy
 from backtest import run_backtest
@@ -23,6 +23,8 @@ if __name__ == "__main__":
     df = get_data()
     #print(df[['time', 'close', 'RSI', 'SMA_50', 'SMA_200', 'OBV']].tail(10))
     df = create_features(df)
+    df = create_target(df)
+    df = clean_data(df)
 
     strategy_rule_based = RuleBasedStrategy()
     df = strategy_rule_based.create_labels(df)
