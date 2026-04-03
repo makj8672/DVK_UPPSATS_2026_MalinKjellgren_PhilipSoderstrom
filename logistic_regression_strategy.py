@@ -24,7 +24,7 @@ from sklearn.metrics import accuracy_score
 from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
-    INDICATOR_COLUMNS = ["price_to_sma200", "sma_cross", "rsi", "obv_diff"]
+    INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
 
     # Constructor
     def __init__(self, model=None, scaler=None):
@@ -32,26 +32,42 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         self.scaler = scaler
 
     def train(self, data_frame):
+        """Train logistic regression model on training data and validate on validation data.
+        
+        Data is split chronologically:
+        - 60% training
+        - 20% validation (used for tuning)
+        - 20% test (reserved for backtesting, not used here)
+        """
+        n = len(data_frame)
+        train_end = int(n * 0.6)
+        val_end = int(n * 0.8)
+
         X = data_frame[self.INDICATOR_COLUMNS]
         y = data_frame["target"]
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, shuffle=False
-            )
-        
+        X_train = X.iloc[:train_end]
+        y_train = y.iloc[:train_end]
+        X_val = X.iloc[train_end:val_end]
+        y_val = y.iloc[train_end:val_end]
+
         self.scaler = StandardScaler()
         X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
+        X_val_scaled = self.scaler.transform(X_val)
 
-        self.model = LogisticRegression(class_weight="balanced")
+        self.model = LogisticRegression(
+            class_weight="balanced",
+            l1_ratio=1,
+            solver="liblinear",
+            random_state=42
+        )
         self.model.fit(X_train_scaled, y_train)
 
-        y_pred = self.model.predict(X_test_scaled)
-        accuracy = accuracy_score(y_test, y_pred)
-        print(f"Logistic Regression Accuracy: {accuracy:.2f}")
+        y_pred = self.model.predict(X_val_scaled)
+        accuracy = accuracy_score(y_val, y_pred)
+        print(f"Logistic Regression Validation Accuracy: {accuracy:.2f}")
 
-        # Debug
-        proba = self.model.predict_proba(X_test_scaled)[:, 1]
+        proba = self.model.predict_proba(X_val_scaled)[:, 1]
         print(f"Min sannolikhet:   {proba.min():.3f}")
         print(f"Max sannolikhet:   {proba.max():.3f}")
         print(f"Medel sannolikhet: {proba.mean():.3f}")

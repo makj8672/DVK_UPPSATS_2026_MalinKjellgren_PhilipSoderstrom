@@ -19,6 +19,8 @@ import ta
 SYMBOL = "XAUUSD"
 TIMEFRAME = mt5.TIMEFRAME_H1
 CANDLES = 10000
+SMA_SHORT = 50
+SMA_LONG = 200
 
 def connect_to_mt5():
     if not mt5.initialize():
@@ -38,10 +40,10 @@ def create_features(df):
 
     TODO: These features are likely suboptimal, we should experiment with adding or replacing them.
     """
-    sma50 = df['close'].rolling(window=50).mean()
-    sma200 = df['close'].rolling(window=200).mean()
-    df["price_to_sma200"] = (df['close'] - sma200) / sma200
-    df["sma_cross"] = (sma50 - sma200) / sma200
+    sma_short = df['close'].rolling(window=SMA_SHORT).mean()
+    sma_long = df['close'].rolling(window=SMA_LONG).mean()
+    df["price_to_sma"] = (df['close'] - sma_long) / sma_long
+    df["sma_cross"] = (sma_short - sma_long) / sma_long
     df["rsi"] = ta.momentum.RSIIndicator(df['close'], window=14).rsi()
     df["obv"] = ta.volume.OnBalanceVolumeIndicator(df['close'], df['tick_volume']).on_balance_volume()
     df["obv_diff"] = df["obv"].pct_change()

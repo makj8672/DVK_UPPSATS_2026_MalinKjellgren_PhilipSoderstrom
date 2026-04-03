@@ -18,6 +18,8 @@ class BacktestResult:
         self.worst_trade = min(trades)
         self.sharpe_ratio = self._sharpe_ratio(trades)
         self.max_drawdown = self._max_drawdown(trades)
+        self.expectancy = self._expectancy(trades)
+        self.profit_factor = self._profit_factor(trades)
 
     def _sharpe_ratio(self, trades):
         returns = pd.Series(trades)
@@ -30,6 +32,24 @@ class BacktestResult:
         peak = cumulative.cummax()
         drawdown = cumulative - peak
         return drawdown.min()
+    
+    def _expectancy(self, trades):
+        """Expectancy = (WR x avg_gain) - (LR x avg_loss)"""
+        wins = [t for t in trades if t > 0]
+        losses = [t for t in trades if t <= 0]
+        win_rate = len(wins) / len(trades)
+        loss_rate = len(losses) / len(trades)
+        avg_gain = sum(wins) / len(wins) if wins else 0
+        avg_loss = abs(sum(losses) / len(losses)) if losses else 0
+        return (win_rate * avg_gain) - (loss_rate * avg_loss)
+
+    def _profit_factor(self, trades):
+        """Profit factor = gross profit / gross loss"""
+        gross_profit = sum(t for t in trades if t > 0)
+        gross_loss = abs(sum(t for t in trades if t < 0))
+        if gross_loss == 0:
+            return float('inf')
+        return gross_profit / gross_loss
 
     def print_results(self):
         print(f"\n--- Backtest-resultat: {self.strategy_name} ---")
@@ -41,11 +61,13 @@ class BacktestResult:
         print(f"Sämsta trade:        {self.worst_trade:.2f}%")
         print(f"Sharpe ratio:        {self.sharpe_ratio:.2f}")
         print(f"Max drawdown:        {self.max_drawdown:.2f}%")
+        print(f"Expectancy:          {self.expectancy:.2f}%")
+        print(f"Profit factor:       {self.profit_factor:.2f}")
 
     @classmethod
     def print_interval_table(cls, interval_results):
         """Print a summary table of backtest results per probability interval."""
-        print(f"\n{'Intervall':<12} {'Trades':<8} {'Win rate':<10} {'Avg return':<12} {'Sharpe':<8} {'Drawdown':<10}")
+        print(f"\n{'Intervall':<12} {'Trades':<8} {'Win rate':<10} {'Expectancy':<12} {'Profit F':<10} {'Avg return':<12} {'Sharpe':<8} {'Drawdown':<10}")
         print("-" * 60)
         
         for label, trades in interval_results.items():
@@ -54,4 +76,4 @@ class BacktestResult:
                 continue
             
             result = cls(trades, label)
-            print(f"{label:<12} {result.total_trades:<8} {result.win_rate:<10.1f} {result.avg_return:<12.2f} {result.sharpe_ratio:<8.2f} {result.max_drawdown:<10.2f}")
+            print(f"{label:<12} {result.total_trades:<8} {result.win_rate:<10.1f} {result.expectancy:<12.2f} {result.profit_factor:<10.2f} {result.avg_return:<12.2f} {result.sharpe_ratio:<8.2f} {result.max_drawdown:<10.2f}")
