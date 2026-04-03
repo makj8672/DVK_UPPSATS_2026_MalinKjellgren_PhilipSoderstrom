@@ -33,7 +33,11 @@ if __name__ == "__main__":
     # df = strategy_rule_based.create_labels(df)
 
     strategy_logistic_regression = LogisticRegressionStrategy(model=None) # TODO: add model
-    strategy_logistic_regression.train(df)
+    
+    rule_signals = df.apply(strategy_rule_based.generate_signal, axis=1)
+    training_data = df[rule_signals == 1]  # Use only rows where rule-based strategy says buy for training
+    
+    strategy_logistic_regression.train(training_data)
 
     #TODO Jag la in ännu ett vis att kör backtest på, vi får bestämma vilken  eller kombo 
     # Backtest with calling function from other file
@@ -54,5 +58,5 @@ if __name__ == "__main__":
         print("RuleBasedStrategy: No trades executed during test period.")
     
     # Backtesting LogistcRegressionStrategy per interval
-    interval_results = run_backtest_all_intervals(strategy_logistic_regression, df)
+    interval_results = run_backtest_all_intervals(strategy_rule_based, strategy_logistic_regression, df)
     BacktestResult.print_interval_table(interval_results)
