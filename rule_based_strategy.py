@@ -24,15 +24,15 @@ class RuleBasedStrategy:
     # Runs through the entire dataframe during the "training of the modell"
     # Denna funktion passar eventuellt bättre under create_features eller create_labels i data_pipeline.py
     # def create_labels(self, data_frame):
-        data_frame["obv_diff"] = data_frame["obv"].diff() # Calculate and save
+        #data_frame["obv_diff"] = data_frame["obv"].diff() # Calculate and save
         
-        cond1 = data_frame["price_to_sma200"] > 0                       # Price over SMA200
-        cond2 = data_frame["sma_cross"] > 0                             # SMA50 over SMA200
-        cond3 = (data_frame["rsi"] >= 35) & (data_frame["rsi"] <= 65)   # RSI neutral
-        cond4 = data_frame["obv_diff"] > 0                              # OBV rising
+        #cond1 = data_frame["price_to_sma200"] > 0                       # Price over SMA200
+        #cond2 = data_frame["sma_cross"] > 0                             # SMA50 over SMA200
+        #cond3 = (data_frame["rsi"] >= 35) & (data_frame["rsi"] <= 65)   # RSI neutral
+        #cond4 = data_frame["obv_diff"] > 0                              # OBV rising
 
-        data_frame["target"] = (cond1 & cond2 & cond3 & cond4).astype(int)
-        print(data_frame["target"].value_counts())
-        return data_frame
+        #data_frame["target"] = (cond1 & cond2 & cond3 & cond4).astype(int)
+        #print(data_frame["target"].value_counts())
+        #return data_frame
     
 
