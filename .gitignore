@@ -8,6 +8,8 @@ live_trader.log
 logistic_model_v2.pkl
 scaler_v2.pkl
 live_trader_v2.log
+*.png
+xauusd_trading.py
 
 
 # Byte-compiled / optimized / DLL files
