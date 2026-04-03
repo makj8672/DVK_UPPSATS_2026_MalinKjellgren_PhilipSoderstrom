@@ -18,7 +18,7 @@ import ta
 
 SYMBOL = "XAUUSD"
 TIMEFRAME = mt5.TIMEFRAME_H1
-CANDLES = 5000
+CANDLES = 10000
 
 def connect_to_mt5():
     if not mt5.initialize():

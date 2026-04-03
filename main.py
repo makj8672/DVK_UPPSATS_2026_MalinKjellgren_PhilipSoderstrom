@@ -26,9 +26,6 @@ if __name__ == "__main__":
     df = create_target(df)
     df = clean_data(df)
   
-    
-    
-
     strategy_rule_based = RuleBasedStrategy()
     # df = strategy_rule_based.create_labels(df)
 
