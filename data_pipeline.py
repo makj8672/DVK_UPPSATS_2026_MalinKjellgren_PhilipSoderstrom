@@ -57,7 +57,7 @@ def clean_data(df):
     return df
 
 
-def get_data():
+# def get_data():
     # Connect to MetaTrader 5
     try:
         connect_to_mt5()
@@ -87,4 +87,16 @@ def get_data():
         return df
     finally:
         # Disconect from MetaTrader 5
+        mt5.shutdown()
+
+def get_data():
+    try:
+        connect_to_mt5()
+        rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 0, CANDLES)
+        if rates is None or len(rates) == 0:
+            raise RuntimeError(f"Kunde inte hämta data: {mt5.last_error()}")
+        df = pd.DataFrame(rates)
+        df['time'] = pd.to_datetime(df['time'], unit='s')
+        return df
+    finally:
         mt5.shutdown()

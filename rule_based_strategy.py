@@ -20,7 +20,7 @@ class RuleBasedStrategy:
 
     # Runs through the entire dataframe during the "training of the modell"
     def create_labels(self, data_frame):
-        data_frame["obv_diff"] = data_frame["OBV"].diff() # Calculate and save
+        data_frame["obv_diff"] = data_frame["obv"].diff() # Calculate and save
         
         cond1 = data_frame["price_to_sma200"] > 0                       # Price over SMA200
         cond2 = data_frame["sma_cross"] > 0                             # SMA50 over SMA200

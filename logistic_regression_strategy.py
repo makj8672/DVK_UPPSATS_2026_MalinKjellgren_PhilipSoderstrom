@@ -24,7 +24,7 @@ from sklearn.metrics import accuracy_score
 from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
-    INDICATOR_COLUMNS = ["price_to_sma200", "sma_cross", "rsi", "OBV"]
+    INDICATOR_COLUMNS = ["price_to_sma200", "sma_cross", "rsi", "obv_diff"]
 
     # Constructor
     def __init__(self, model=None, scaler=None):
@@ -51,7 +51,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Logistic Regression Accuracy: {accuracy:.2f}")
 
 
-    def predict(self, row):
+    def generate_signal(self, row):
         latest = row[self.INDICATOR_COLUMNS].to_frame().T
         latest_scaled = self.scaler.transform(latest)
         probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
