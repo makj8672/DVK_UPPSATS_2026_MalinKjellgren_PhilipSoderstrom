@@ -66,6 +66,13 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         y_pred = self.model.predict(X_val_scaled)
         accuracy = accuracy_score(y_val, y_pred)
         print(f"Logistic Regression Validation Accuracy: {accuracy:.2f}")
+        print("\n--- MQL5 Export ---")
+        print(f"Intercept: {self.model.intercept_[0]}")
+        print(f"Coefficients:")
+        for feature, coef in zip(self.INDICATOR_COLUMNS, self.model.coef_[0]):
+            print(f"  {feature}: {coef}")
+        print(f"Scaler means: {self.scaler.mean_}")
+        print(f"Scaler stds: {self.scaler.scale_}")
 
         proba = self.model.predict_proba(X_val_scaled)[:, 1]
         print(f"Min sannolikhet:   {proba.min():.3f}")
