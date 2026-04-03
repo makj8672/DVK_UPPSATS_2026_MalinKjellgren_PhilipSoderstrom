@@ -19,7 +19,8 @@ class RuleBasedStrategy:
         return 0        # Hold signal
 
     # Runs through the entire dataframe during the "training of the modell"
-    def create_labels(self, data_frame):
+    # Denna funktion passar eventuellt bättre under create_features eller create_labels i data_pipeline.py
+    # def create_labels(self, data_frame):
         data_frame["obv_diff"] = data_frame["obv"].diff() # Calculate and save
         
         cond1 = data_frame["price_to_sma200"] > 0                       # Price over SMA200

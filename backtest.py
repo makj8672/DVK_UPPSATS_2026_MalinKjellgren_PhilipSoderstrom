@@ -46,7 +46,7 @@ def run_backtest(strategy, data_frame):
 
             return_pct = (exit_price - entry_price) / entry_price * 100
             trades.append(return_pct)
-
+            
     if len(trades) == 0:
         print("No trades done during test period.")
         return None

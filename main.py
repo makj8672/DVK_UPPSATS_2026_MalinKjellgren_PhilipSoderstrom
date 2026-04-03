@@ -25,21 +25,36 @@ if __name__ == "__main__":
     df = create_features(df)
     df = create_target(df)
     df = clean_data(df)
+  
+    
+    
 
     strategy_rule_based = RuleBasedStrategy()
-    df = strategy_rule_based.create_labels(df)
+    # df = strategy_rule_based.create_labels(df)
 
     strategy_logistic_regression = LogisticRegressionStrategy(model=None) # TODO: add model
     strategy_logistic_regression.train(df)
 
     #TODO Jag la in ännu ett vis att kör backtest på, vi får bestämma vilken  eller kombo 
     # Backtest with calling function from other file
-    results_rule_based = run_backtest(strategy_rule_based, df)
-    results_logistic_regression = run_backtest(strategy_logistic_regression, df)
+    #results_rule_based = run_backtest(strategy_rule_based, df)
+    #results_logistic_regression = run_backtest(strategy_logistic_regression, df)
 
     # Backtest with calling function from other file and saving results in BacktestResult class
-    results_rule_based = BacktestResult(run_backtest(strategy_rule_based, df), "RuleBasedStrategy")
-    results_logistic_regression = BacktestResult(run_backtest(strategy_logistic_regression, df), "LogisticRegressionStrategy")
+    #results_rule_based = BacktestResult(run_backtest(strategy_rule_based, df), "RuleBasedStrategy")
+    #results_logistic_regression = BacktestResult(run_backtest(strategy_logistic_regression, df), "LogisticRegressionStrategy")
 
-    results_rule_based.print_results()
-    results_logistic_regression.print_results()
+    trades_rule_based = run_backtest(strategy_rule_based, df)
+    trades_logistic_regression = run_backtest(strategy_logistic_regression, df)
+
+    if trades_rule_based is not None:
+        results_rule_based = BacktestResult(trades_rule_based, "RuleBasedStrategy")
+        results_rule_based.print_results()
+    else:
+        print("RuleBasedStrategy: No trades executed during test period.")
+    
+    if trades_logistic_regression is not None:
+        results_logistic_regression = BacktestResult(trades_logistic_regression, "LogisticRegressionStrategy")
+        results_logistic_regression.print_results()
+    else:
+        print("LogisticRegressionStrategy: No trades executed during test period.")

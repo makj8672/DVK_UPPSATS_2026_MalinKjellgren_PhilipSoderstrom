@@ -34,6 +34,7 @@ def create_features(df):
     - sma_cross: difference between SMA50 and SMA200, as a ratio
     - rsi: Relative Strength Index (14 periods)
     - obv: On Balance Volume
+    - obv_diff: Procentual change in OBV from previous period
 
     TODO: These features are likely suboptimal, we should experiment with adding or replacing them.
     """
@@ -43,6 +44,7 @@ def create_features(df):
     df["sma_cross"] = (sma50 - sma200) / sma200
     df["rsi"] = ta.momentum.RSIIndicator(df['close'], window=14).rsi()
     df["obv"] = ta.volume.OnBalanceVolumeIndicator(df['close'], df['tick_volume']).on_balance_volume()
+    df["obv_diff"] = df["obv"].pct_change()
     return df
 
 def create_target(df):

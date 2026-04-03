@@ -50,15 +50,20 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         accuracy = accuracy_score(y_test, y_pred)
         print(f"Logistic Regression Accuracy: {accuracy:.2f}")
 
+        # Debug
+        proba = self.model.predict_proba(X_test_scaled)[:, 1]
+        print(f"Min sannolikhet:   {proba.min():.3f}")
+        print(f"Max sannolikhet:   {proba.max():.3f}")
+        print(f"Medel sannolikhet: {proba.mean():.3f}")
 
     def generate_signal(self, row):
         latest = row[self.INDICATOR_COLUMNS].to_frame().T
         latest_scaled = self.scaler.transform(latest)
         probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
 
-        if probability > 0.6:
+        if probability > 0.50:
             return 1    # Buy signal
-        elif probability < 0.4:
+        elif probability < 0.49:
             return -1   # Sell signal
         else:
             return 0    # Hold signal
