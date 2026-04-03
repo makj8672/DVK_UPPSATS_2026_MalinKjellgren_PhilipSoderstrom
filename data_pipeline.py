@@ -98,5 +98,8 @@ def get_data():
         df = pd.DataFrame(rates)
         df['time'] = pd.to_datetime(df['time'], unit='s')
         return df
+    except ConnectionError as e:
+        print(e)
+        sys.exit(1)
     finally:
         mt5.shutdown()
