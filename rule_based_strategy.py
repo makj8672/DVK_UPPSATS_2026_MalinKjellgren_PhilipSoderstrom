@@ -22,7 +22,7 @@ class RuleBasedStrategy:
         return None
 
     # Runs through the entire dataframe during the "training of the modell"
-    # Denna funktion passar eventuellt bättre under create_features eller create_labels i data_pipeline.py
+    # Denna funktion passar eventuellt bättre under create_features eller create_labels i data_pipeline.py DETTA ÄR IMPLEMENTERAT I create_labels() I DATA_PIPELINE.PY, KAN TAS BORT
     # def create_labels(self, data_frame):
         #data_frame["obv_diff"] = data_frame["obv"].diff() # Calculate and save
         
