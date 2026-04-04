@@ -32,6 +32,24 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         self.model = model
         self.scaler = scaler
 
+    def _prepare_data(self, data_frame):
+        """Prepare and scale features for training and validation.
+        
+        Returns scaled train and validation sets.
+        """
+        train_data, val_data, _ = split_data(data_frame)
+
+        x_train = train_data[self.INDICATOR_COLUMNS]
+        y_train = train_data["target"]
+        x_val = val_data[self.INDICATOR_COLUMNS]
+        y_val = val_data["target"]
+
+        self.scaler = StandardScaler()
+        x_train_scaled = self.scaler.fit_transform(x_train)
+        x_val_scaled = self.scaler.transform(x_val)
+
+        return x_train_scaled, y_train, x_val_scaled, y_val
+    
     def train(self, data_frame, C=None):
         """Train logistic regression model on training data and validate on validation data.
         
@@ -45,14 +63,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         
         train_data, val_data, _ = split_data(data_frame)
 
-        x_train = train_data[self.INDICATOR_COLUMNS]
-        y_train = train_data["target"]
-        x_val = val_data[self.INDICATOR_COLUMNS]
-        y_val = val_data["target"]
-
-        self.scaler = StandardScaler()
-        x_train_scaled = self.scaler.fit_transform(x_train)
-        x_val_scaled = self.scaler.transform(x_val)
+        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
 
         self.model = LogisticRegression(
             class_weight="balanced",
@@ -102,14 +113,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         """Tune C parameter on validatation data"""
         train_data, val_data, _ = split_data(data_frame)
 
-        x_train = train_data[self.INDICATOR_COLUMNS]
-        y_train = train_data["target"]
-        x_val = val_data[self.INDICATOR_COLUMNS]
-        y_val = val_data["target"]
-
-        self.scaler = StandardScaler()
-        x_train_scaled = self.scaler.fit_transform(x_train)
-        x_val_scaled = self.scaler.transform(x_val)
+        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
 
         C_values = [0.01, 0.1, 1, 10, 100]
         best_C = None
