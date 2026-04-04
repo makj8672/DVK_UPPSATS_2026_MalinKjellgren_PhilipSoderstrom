@@ -78,53 +78,58 @@ bool RuleBasedSignal(double price_to_sma, double sma_cross, double rsi, double o
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    //--- Only run on new candle
     static datetime last_bar = 0;
     datetime current_bar = iTime(_Symbol, PERIOD_H1, 0);
     if(current_bar == last_bar) return;
     last_bar = current_bar;
 
-    //--- Check if we already have an open position
-    if(PositionsTotal() > 0) return;
+    if(PositionsTotal() > 0)
+    {
+        Print("Position öppen - hoppar över signal");
+        return;
+    }
 
-    //--- Get indicator values
     int sma50_handle  = iMA(_Symbol, PERIOD_H1, 50,  0, MODE_SMA, PRICE_CLOSE);
     int sma200_handle = iMA(_Symbol, PERIOD_H1, 200, 0, MODE_SMA, PRICE_CLOSE);
     int rsi_handle    = iRSI(_Symbol, PERIOD_H1, 14, PRICE_CLOSE);
 
     double sma50[], sma200[], rsi_val[];
-    ArraySetAsSeries(sma50,    true);
-    ArraySetAsSeries(sma200,   true);
-    ArraySetAsSeries(rsi_val,  true);
+    ArraySetAsSeries(sma50,   true);
+    ArraySetAsSeries(sma200,  true);
+    ArraySetAsSeries(rsi_val, true);
 
     CopyBuffer(sma50_handle,  0, 0, 2, sma50);
     CopyBuffer(sma200_handle, 0, 0, 2, sma200);
     CopyBuffer(rsi_handle,    0, 0, 2, rsi_val);
 
-    //--- Get OBV
     int obv_handle = iOBV(_Symbol, PERIOD_H1, VOLUME_TICK);
     double obv[];
     ArraySetAsSeries(obv, true);
     CopyBuffer(obv_handle, 0, 0, 3, obv);
 
-    //--- Calculate features
-    double close         = iClose(_Symbol, PERIOD_H1, 1);
-    double price_to_sma  = (close - sma200[1]) / sma200[1];
-    double sma_cross     = (sma50[1] - sma200[1]) / sma200[1];
-    double rsi           = rsi_val[1];
-    double obv_diff      = obv[1] != 0 ? (obv[1] - obv[2]) / MathAbs(obv[2]) : 0;
+    double close        = iClose(_Symbol, PERIOD_H1, 1);
+    double price_to_sma = (close - sma200[1]) / sma200[1];
+    double sma_cross    = (sma50[1] - sma200[1]) / sma200[1];
+    double rsi          = rsi_val[1];
+    double obv_diff     = obv[1] != 0 ? (obv[1] - obv[2]) / MathAbs(obv[2]) : 0;
+    double probability  = GetProbability(price_to_sma, sma_cross, rsi, obv_diff);
+    bool   signal       = RuleBasedSignal(price_to_sma, sma_cross, rsi, obv_diff);
 
-    //--- Check rule-based signal
-    if(!RuleBasedSignal(price_to_sma, sma_cross, rsi, obv_diff)) return;
+    Print("--- Ny H1 bar ---");
+    Print("price_to_sma=", DoubleToString(price_to_sma, 5),
+          " sma_cross=",   DoubleToString(sma_cross, 5),
+          " rsi=",         DoubleToString(rsi, 2),
+          " obv_diff=",    DoubleToString(obv_diff, 5));
+    Print("Probability=",  DoubleToString(probability, 4),
+          " Signal=",      signal ? "KÖP" : "HÅLL");
 
-    //--- Get LR probability
-    double probability = GetProbability(price_to_sma, sma_cross, rsi, obv_diff);
-    Print("Signal generated! Probability: ", probability);
+    if(!signal) return;
 
-    //--- Execute trade
-    double entry  = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
-    double sl     = entry * (1 - STOP_LOSS_PCT / 100);
-    double tp     = entry * (1 + TAKE_PROFIT_PCT / 100);
+    Print("Signal generated! Probability: ", DoubleToString(probability, 4));
+
+    double entry = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+    double sl    = entry * (1 - STOP_LOSS_PCT / 100);
+    double tp    = entry * (1 + TAKE_PROFIT_PCT / 100);
 
     trade.Buy(LOT_SIZE, _Symbol, entry, sl, tp,
               StringFormat("LR_Strategy p=%.3f", probability));
