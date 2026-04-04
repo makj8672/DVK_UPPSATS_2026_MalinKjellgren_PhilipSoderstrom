@@ -65,7 +65,7 @@ def get_data():
         connect_to_mt5()
         rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 0, CANDLES)
         if rates is None or len(rates) == 0:
-            raise RuntimeError(f"Kunde inte hämta data: {mt5.last_error()}")
+            raise RuntimeError(f"Could not fetch data: {mt5.last_error()}")
         df = pd.DataFrame(rates)
         df['time'] = pd.to_datetime(df['time'], unit='s')
         return df
