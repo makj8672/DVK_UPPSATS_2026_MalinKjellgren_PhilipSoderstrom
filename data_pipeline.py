@@ -74,3 +74,20 @@ def get_data():
         sys.exit(1)
     finally:
         mt5.shutdown()
+
+def split_data(df):
+    """Split data chronologically into train, validation and test sets.
+    
+    - 60% training
+    - 20% validation
+    - 20% test
+    """
+    n = len(df)
+    train_end = int(n * 0.6)
+    val_end = int(n * 0.8)
+
+    train_data = df.iloc[:train_end]
+    val_data = df.iloc[train_end:val_end]
+    test_data = df.iloc[val_end:]
+
+    return train_data, val_data, test_data

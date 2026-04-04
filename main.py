@@ -12,7 +12,7 @@
 
 # Compare and print results
 
-from data_pipeline import create_target, get_data, create_features, clean_data
+from data_pipeline import create_target, get_data, create_features, clean_data, split_data
 from rule_based_strategy import RuleBasedStrategy
 from logistic_regression_strategy import LogisticRegressionStrategy
 from backtest import group_trades_by_interval, run_backtest, run_backtest_with_probabilities
@@ -25,16 +25,7 @@ if __name__ == "__main__":
     df = create_target(df)
     df = clean_data(df)
 
-    # Split data chronologically
-    n = len(df)
-    train_end = int(n * 0.6)
-    val_end = int(n * 0.8)
-
-    
-    
-    train_data = df.iloc[:train_end]
-    val_data = df.iloc[train_end:val_end]
-    test_data = df.iloc[val_end:]
+    train_data, val_data, test_data = split_data(df)
     print(f"Storlek på test_data: {len(test_data)}")
     # Train on rule-based buy signals only
     strategy_rule_based = RuleBasedStrategy()
