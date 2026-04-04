@@ -91,7 +91,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Medel sannolikhet: {proba.mean():.3f}")
 
     def generate_signal(self, row):
-        """Used for live trading - returns buy/sell/hold signal based on probability."""
+        """
+        NOTE: Not used in current implementation.
+        Live trading is handled by the MQL5 Expert Advisor.
+        Backtesting uses get_probability() instead.
+        Could be used if live trading is moved to Python in the future.
+        """
         latest = row[self.INDICATOR_COLUMNS].to_frame().T
         latest_scaled = self.scaler.transform(latest)
         probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
