@@ -17,8 +17,8 @@
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from data_pipeline import split_data
 #import joblib TODO: Delete or save?
 
 from rule_based_strategy import RuleBasedStrategy
@@ -40,24 +40,19 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         - 20% validation (used for tuning)
         - 20% test (reserved for backtesting, not used here)
         """
-        if C is not None:
+        if C is None:
             C = self.REG_C
         
-        n = len(data_frame)
-        train_end = int(n * 0.6)
-        val_end = int(n * 0.8)
+        train_data, val_data, _ = split_data(data_frame)
 
-        X = data_frame[self.INDICATOR_COLUMNS]
-        y = data_frame["target"]
-
-        X_train = X.iloc[:train_end]
-        y_train = y.iloc[:train_end]
-        X_val = X.iloc[train_end:val_end]
-        y_val = y.iloc[train_end:val_end]
+        x_train = train_data[self.INDICATOR_COLUMNS]
+        y_train = train_data["target"]
+        x_val = val_data[self.INDICATOR_COLUMNS]
+        y_val = val_data["target"]
 
         self.scaler = StandardScaler()
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_val_scaled = self.scaler.transform(X_val)
+        x_train_scaled = self.scaler.fit_transform(x_train)
+        x_val_scaled = self.scaler.transform(x_val)
 
         self.model = LogisticRegression(
             class_weight="balanced",
@@ -66,9 +61,9 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             random_state=42,
             C=C
         )
-        self.model.fit(X_train_scaled, y_train)
+        self.model.fit(x_train_scaled, y_train)
 
-        y_pred = self.model.predict(X_val_scaled)
+        y_pred = self.model.predict(x_val_scaled)
         accuracy = accuracy_score(y_val, y_pred)
         print(f"Logistic Regression Validation Accuracy: {accuracy:.2f}")
         print("\n--- MQL5 Export ---")
@@ -79,7 +74,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Scaler means: {self.scaler.mean_}")
         print(f"Scaler stds: {self.scaler.scale_}")
 
-        proba = self.model.predict_proba(X_val_scaled)[:, 1]
+        proba = self.model.predict_proba(x_val_scaled)[:, 1]
         print(f"Min sannolikhet:   {proba.min():.3f}")
         print(f"Max sannolikhet:   {proba.max():.3f}")
         print(f"Medel sannolikhet: {proba.mean():.3f}")
@@ -105,17 +100,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
     def tune(self, data_frame):
         """Tune C parameter on validatation data"""
-        n = len(data_frame)
-        train_end = int(n * 0.6)
-        val_end = int(n * 0.8)
+        train_data, val_data, _ = split_data(data_frame)
 
-        x = data_frame[self.INDICATOR_COLUMNS]
-        y = data_frame["target"]
-
-        x_train = x.iloc[:train_end]
-        y_train = y.iloc[:train_end]
-        x_val = x.iloc[train_end:val_end]
-        y_val = y.iloc[train_end:val_end]
+        x_train = train_data[self.INDICATOR_COLUMNS]
+        y_train = train_data["target"]
+        x_val = val_data[self.INDICATOR_COLUMNS]
+        y_val = val_data["target"]
 
         self.scaler = StandardScaler()
         x_train_scaled = self.scaler.fit_transform(x_train)
@@ -135,7 +125,6 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
                 C=C
             )
             model.fit(x_train_scaled, y_train)
-            y_pred = model.predict(x_val_scaled)
             accuracy = accuracy_score(y_val, model.predict(x_val_scaled))
             print(f"C={C:<8} Accuracy = {accuracy:.3f}")
             
@@ -145,9 +134,3 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             
         print(f"\nBästa C: {best_C} med accuracy: {best_accuracy:.3f}")
         return best_C
-
-
-    #TODO: Not needed if we split data in train method, but could be useful for backtesting on unseen data
-    def split_data(self, data_frame):
-        # TODO: Implement data splitting logic
-        pass
