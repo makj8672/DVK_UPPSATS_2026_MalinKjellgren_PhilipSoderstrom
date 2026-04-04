@@ -30,6 +30,8 @@ if __name__ == "__main__":
     train_end = int(n * 0.6)
     val_end = int(n * 0.8)
 
+    
+    
     train_data = df.iloc[:train_end]
     val_data = df.iloc[train_end:val_end]
     test_data = df.iloc[val_end:]
@@ -40,7 +42,9 @@ if __name__ == "__main__":
     training_data = train_data[rule_signals == 1]
 
     strategy_logistic_regression = LogisticRegressionStrategy()
-    strategy_logistic_regression.train(training_data)
+    
+    best_C = strategy_logistic_regression.tune(training_data)
+    strategy_logistic_regression.train(training_data, C=best_C)
 
     # Baseline backtest on test data
     trades_rule_based = run_backtest(strategy_rule_based, test_data)
