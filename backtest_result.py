@@ -62,13 +62,13 @@ class BacktestResult:
         return gross_profit / gross_loss
 
     def print_results(self):
-        print(f"\n--- Backtest-resultat: {self.strategy_name} ---")
-        print(f"Antal trades:        {self.total_trades}")
-        print(f"Vinnande trades:     {self.winning_trades} ({self.win_rate:.1f}%)")
-        print(f"Genomsnittlig trade: {self.avg_return:.2f}%")
-        print(f"Total avkastning:    {self.total_return:.2f}%")
-        print(f"Bästa trade:         {self.best_trade:.2f}%")
-        print(f"Sämsta trade:        {self.worst_trade:.2f}%")
+        print(f"\n--- Backtest result: {self.strategy_name} ---")
+        print(f"Total trades:        {self.total_trades}")
+        print(f"Winning trades:      {self.winning_trades} ({self.win_rate:.1f}%)")
+        print(f"Average trade:       {self.avg_return:.2f}%")
+        print(f"Total return:        {self.total_return:.2f}%")
+        print(f"Best trade:          {self.best_trade:.2f}%")
+        print(f"Worst trade:         {self.worst_trade:.2f}%")
         print(f"Sharpe ratio:        {self.sharpe_ratio:.2f}")
         print(f"Max drawdown:        {self.max_drawdown:.2f}%")
         print(f"Expectancy:          {self.expectancy:.2f}%")
