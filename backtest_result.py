@@ -12,8 +12,8 @@ class BacktestResult:
         self.total_trades = len(trades)
         self.winning_trades = sum(1 for t in trades if t > 0)
         self.win_rate = self.winning_trades / self.total_trades * 100
-        self.total_return = sum(trades)
-        self.avg_return = self.total_return / self.total_trades
+        self.total_return = self._total_return(trades)
+        self.avg_return = self._avg_return(trades)
         self.best_trade = max(trades)
         self.worst_trade = min(trades)
         self.sharpe_ratio = self._sharpe_ratio(trades)
@@ -21,6 +21,20 @@ class BacktestResult:
         self.expectancy = self._expectancy(trades)
         self.profit_factor = self._profit_factor(trades)
 
+    def _total_return(self, trades):
+        """Calculate compounded total return."""
+        equity = 100.0
+        for trade in trades:
+            equity *= (1 + trade / 100)
+        return equity - 100.0
+    
+    def _avg_return(self, trades):
+        """Calculate geometric mean return per trade."""
+        equity = 100.0
+        for trade in trades:
+            equity *= (1 + trade / 100)
+        return (equity / 100) ** (1 / len(trades)) * 100 - 100
+    
     def _sharpe_ratio(self, trades):
         returns = pd.Series(trades)
         if returns.std() == 0:
