@@ -52,8 +52,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
     
     def tune(self, data_frame):
         """Tune C parameter on validatation data"""
-        train_data, val_data, _ = split_data(data_frame)
-
+        
         x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
 
         C_values = [0.01, 0.1, 1, 10, 100]
@@ -90,8 +89,6 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         """
         if C is None:
             C = self.REG_C
-        
-        train_data, val_data, _ = split_data(data_frame)
 
         x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
 
