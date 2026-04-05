@@ -19,13 +19,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
 from data_pipeline import split_data
+import numpy as np
 #import joblib TODO: Delete or save?
 
 from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
-    REG_C = 10.0  # Default regularization strength, will be tuned on validation data
+    REG_C = 4.64  # Default regularization strength, will be tuned on validation data
 
     # Constructor
     def __init__(self, model=None, scaler=None):
@@ -54,7 +55,8 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         
         x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(train_data, val_data)
 
-        C_values = [0.01, 0.1, 1, 10, 100]
+        #C_values = [0.01, 0.1, 1, 10, 100]
+        C_values = np.logspace(-2, 2, 10).tolist()
         best_C = None
         best_accuracy = 0
 
@@ -69,7 +71,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             )
             model.fit(x_train_scaled, y_train)
             accuracy = accuracy_score(y_val, model.predict(x_val_scaled))
-            print(f"C={C:<8} Accuracy = {accuracy:.3f}")
+            print(f"C={C:<10.4f} Accuracy = {accuracy:.3f}")
             
             if accuracy > best_accuracy:
                 best_accuracy = accuracy

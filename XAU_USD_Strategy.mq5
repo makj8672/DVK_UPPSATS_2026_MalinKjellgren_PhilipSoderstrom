@@ -10,10 +10,10 @@ CTrade trade;
 
 //--- Logistic Regression parameters (exported from Python)
 double LR_INTERCEPT            =  0.0;
-double LR_COEF_PRICE_TO_SMA    =  0.03897775708867747;
-double LR_COEF_SMA_CROSS       = -0.11366662870409167;
-double LR_COEF_RSI             = -0.09241940066968937;
-double LR_COEF_OBV_DIFF        = -0.018234954820928104;
+double LR_COEF_PRICE_TO_SMA    =  0.03290340087022982;
+double LR_COEF_SMA_CROSS       = -0.10777507250300551;
+double LR_COEF_RSI             = -0.08919297797970063;
+double LR_COEF_OBV_DIFF        = -0.017944518113328083;
 
 //--- Scaler parameters (exported from Python)
 double SCALER_MEAN_PRICE_TO_SMA =  1.26126161e-02;
