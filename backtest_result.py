@@ -28,10 +28,20 @@ class BacktestResult:
         return (returns.mean() / returns.std()) * np.sqrt(252)
 
     def _max_drawdown(self, trades):
-        cumulative = pd.Series(trades).cumsum()
-        peak = cumulative.cummax()
-        drawdown = cumulative - peak
-        return drawdown.min()
+        """Calculate max drawdown as percentage of peak equity."""
+        equity = 100.0  # Start with 100 as base
+        peak = equity
+        max_dd = 0.0
+
+        for trade in trades:
+            equity *= (1 + trade / 100)  # compound returns
+            if equity > peak:
+                peak = equity
+            drawdown = (equity - peak) / peak * 100
+            if drawdown < max_dd:
+                max_dd = drawdown
+
+        return max_dd
     
     def _expectancy(self, trades):
         """Expectancy = (WR x avg_gain) - (LR x avg_loss)"""

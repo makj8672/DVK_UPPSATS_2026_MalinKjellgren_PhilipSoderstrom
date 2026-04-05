@@ -134,9 +134,9 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             latest_scaled = self.scaler.transform(latest)
             probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
 
-            if probability > 0.50:
+            if probability > 0.52:
                 return 1    # Buy signal
-            elif probability < 0.49:
+            elif probability < 0.47:
                 return -1   # Sell signal
             else:
                 return 0    # Hold signal

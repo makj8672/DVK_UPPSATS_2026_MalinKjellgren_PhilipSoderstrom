@@ -57,4 +57,12 @@ if __name__ == "__main__":
         BacktestResult.print_interval_table(interval_results)
     else:
         print("No trades executed during interval backtest.")
-  
+
+    # Backtest logistic regression strategy on test data
+    trades_lr = run_backtest(strategy_logistic_regression, test_data)
+    if trades_lr is not None:
+        results_lr = BacktestResult(trades_lr, "LogisticRegressionStrategy")
+        results_lr.print_results()
+    else:
+        print("LogisticRegressionStrategy: No trades executed.")
+    
