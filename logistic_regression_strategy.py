@@ -32,13 +32,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         self.model = model
         self.scaler = scaler
 
-    def _prepare_data(self, data_frame):
+    def _prepare_data(self, train_data, val_data):
         """Prepare and scale features for training and validation.
         
         Returns scaled train and validation sets.
         """
-        train_data, val_data, _ = split_data(data_frame)
-
+        
         x_train = train_data[self.INDICATOR_COLUMNS]
         y_train = train_data["target"]
         x_val = val_data[self.INDICATOR_COLUMNS]
@@ -50,10 +49,10 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
         return x_train_scaled, y_train, x_val_scaled, y_val
     
-    def tune(self, data_frame):
+    def tune(self, train_data, val_data):
         """Tune C parameter on validatation data"""
         
-        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
+        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(train_data, val_data)
 
         C_values = [0.01, 0.1, 1, 10, 100]
         best_C = None
@@ -79,18 +78,17 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"\nBästa C: {best_C} med accuracy: {best_accuracy:.3f}")
         return best_C
     
-    def train(self, data_frame, C=None):
+    def train(self, train_data, val_data, C=None):
         """Train logistic regression model on training data and validate on validation data.
         
-        Data is split chronologically:
-        - 60% training
-        - 20% validation (used for tuning)
-        - 20% test (reserved for backtesting, not used here)
+        Data preparation and scaling is handled by _prepare_data().
+        If C is not provided, REG_C is used as default regularization strength.
+        Prints validation accuracy, MQL5 export values, and probability distribution.
         """
         if C is None:
             C = self.REG_C
 
-        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
+        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(train_data, val_data)
 
         self.model = LogisticRegression(
             class_weight="balanced",

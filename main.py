@@ -30,12 +30,16 @@ if __name__ == "__main__":
     
     # Train on rule-based buy signals only
     strategy_rule_based = RuleBasedStrategy()
+    
     rule_signals = train_data.apply(strategy_rule_based.generate_signal, axis=1)
     buy_signal_rows = train_data[rule_signals == 1]
 
+    val_signals = val_data.apply(strategy_rule_based.generate_signal, axis=1)
+    buy_signal_rows_val = val_data[val_signals == 1]
+    
     strategy_logistic_regression = LogisticRegressionStrategy()
-    best_C = strategy_logistic_regression.tune(buy_signal_rows)
-    strategy_logistic_regression.train(buy_signal_rows, C=best_C)
+    best_C = strategy_logistic_regression.tune(buy_signal_rows, buy_signal_rows_val)
+    strategy_logistic_regression.train(buy_signal_rows, buy_signal_rows_val, C=best_C)
 
     # Baseline backtest on test data
     trades_rule_based = run_backtest(strategy_rule_based, test_data)
