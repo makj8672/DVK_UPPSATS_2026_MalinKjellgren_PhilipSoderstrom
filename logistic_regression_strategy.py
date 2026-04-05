@@ -50,6 +50,36 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
         return x_train_scaled, y_train, x_val_scaled, y_val
     
+    def tune(self, data_frame):
+        """Tune C parameter on validatation data"""
+        train_data, val_data, _ = split_data(data_frame)
+
+        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
+
+        C_values = [0.01, 0.1, 1, 10, 100]
+        best_C = None
+        best_accuracy = 0
+
+        print("\n--- Tuning C parameter ---")
+        for C in C_values:
+            model = LogisticRegression(
+                class_weight="balanced",
+                l1_ratio=1,
+                solver="liblinear",
+                random_state=42,
+                C=C
+            )
+            model.fit(x_train_scaled, y_train)
+            accuracy = accuracy_score(y_val, model.predict(x_val_scaled))
+            print(f"C={C:<8} Accuracy = {accuracy:.3f}")
+            
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_C = C
+            
+        print(f"\nBästa C: {best_C} med accuracy: {best_accuracy:.3f}")
+        return best_C
+    
     def train(self, data_frame, C=None):
         """Train logistic regression model on training data and validate on validation data.
         
@@ -89,57 +119,27 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Min sannolikhet:   {proba.min():.3f}")
         print(f"Max sannolikhet:   {proba.max():.3f}")
         print(f"Medel sannolikhet: {proba.mean():.3f}")
-
-    def generate_signal(self, row):
-        """
-        NOTE: Not used in current implementation.
-        Live trading is handled by the MQL5 Expert Advisor.
-        Backtesting uses get_probability() instead.
-        Could be used if live trading is moved to Python in the future.
-        """
-        latest = row[self.INDICATOR_COLUMNS].to_frame().T
-        latest_scaled = self.scaler.transform(latest)
-        probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
-
-        if probability > 0.50:
-            return 1    # Buy signal
-        elif probability < 0.49:
-            return -1   # Sell signal
-        else:
-            return 0    # Hold signal
-
+   
     def get_probability(self, row):
         """Return raw probability for interval-based backtesting."""
         latest = row[self.INDICATOR_COLUMNS].to_frame().T
         latest_scaled = self.scaler.transform(latest)
         return self.model.predict_proba(latest_scaled)[0][1]
 
-    def tune(self, data_frame):
-        """Tune C parameter on validatation data"""
-        train_data, val_data, _ = split_data(data_frame)
+    def generate_signal(self, row):
+            """
+            NOTE: Not used in current implementation.
+            Live trading is handled by the MQL5 Expert Advisor.
+            Backtesting uses get_probability() instead.
+            Could be used if live trading is moved to Python in the future.
+            """
+            latest = row[self.INDICATOR_COLUMNS].to_frame().T
+            latest_scaled = self.scaler.transform(latest)
+            probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
 
-        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(data_frame)
-
-        C_values = [0.01, 0.1, 1, 10, 100]
-        best_C = None
-        best_accuracy = 0
-
-        print("\n--- Tuning C parameter ---")
-        for C in C_values:
-            model = LogisticRegression(
-                class_weight="balanced",
-                l1_ratio=1,
-                solver="liblinear",
-                random_state=42,
-                C=C
-            )
-            model.fit(x_train_scaled, y_train)
-            accuracy = accuracy_score(y_val, model.predict(x_val_scaled))
-            print(f"C={C:<8} Accuracy = {accuracy:.3f}")
-            
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
-                best_C = C
-            
-        print(f"\nBästa C: {best_C} med accuracy: {best_accuracy:.3f}")
-        return best_C
+            if probability > 0.50:
+                return 1    # Buy signal
+            elif probability < 0.49:
+                return -1   # Sell signal
+            else:
+                return 0    # Hold signal
