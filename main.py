@@ -28,16 +28,17 @@ if __name__ == "__main__":
     train_data, val_data, test_data = split_data(df)
     print(f"Storlek på test_data: {len(test_data)}")
     
-    # Train on rule-based buy signals only
     strategy_rule_based = RuleBasedStrategy()
-    
+    strategy_logistic_regression = LogisticRegressionStrategy()
+
+    # Filtering buy signals for training
     rule_signals = train_data.apply(strategy_rule_based.generate_signal, axis=1)
     buy_signal_rows = train_data[rule_signals == 1]
 
     val_signals = val_data.apply(strategy_rule_based.generate_signal, axis=1)
     buy_signal_rows_val = val_data[val_signals == 1]
     
-    strategy_logistic_regression = LogisticRegressionStrategy()
+    # Tune C parameter on validation data and train logistic regression model
     best_C = strategy_logistic_regression.tune(buy_signal_rows, buy_signal_rows_val)
     strategy_logistic_regression.train(buy_signal_rows, buy_signal_rows_val, C=best_C)
 
