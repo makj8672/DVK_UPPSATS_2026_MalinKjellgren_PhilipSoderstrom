@@ -27,6 +27,8 @@ from rule_based_strategy import RuleBasedStrategy
 class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
     REG_C = 4.64  # Default regularization strength, will be tuned on validation data
+    # PENALTY = "l1" TODO: Ta bort?
+    SOLVER = "liblinear"
 
     # Constructor
     def __init__(self, model=None, scaler=None):
@@ -65,7 +67,8 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             model = LogisticRegression(
                 class_weight="balanced",
                 l1_ratio=1,
-                solver="liblinear",
+                #penalty=self.PENALTY, TODO: Ta bort?
+                solver=self.SOLVER,
                 random_state=42,
                 C=C
             )
@@ -95,7 +98,8 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         self.model = LogisticRegression(
             class_weight="balanced",
             l1_ratio=1,
-            solver="liblinear",
+            #penalty=self.PENALTY, TODO: Ta bort?
+            solver=self.SOLVER,
             random_state=42,
             C=C
         )
