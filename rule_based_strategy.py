@@ -16,6 +16,11 @@ class RuleBasedStrategy:
         
         if cond1 and cond2 and cond3 and cond4:
             return 1    # Buy signal
+
+        # Sell: mirror of buy — bearish trend / flow, RSI still neutral
+        if not cond1 and not cond2 and cond3 and not cond4:
+            return -1   # Sell signal
+
         return 0        # Hold signal
 
     def get_probability(self, row):

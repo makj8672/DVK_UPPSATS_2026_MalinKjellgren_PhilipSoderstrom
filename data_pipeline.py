@@ -50,9 +50,14 @@ def create_features(df):
     return df
 
 def create_target(df):
-    """Create target variable for machine learning model. 
-    We are trying to predict if the price will go up in the next hour."""
-    df["target"] = (df["close"].shift(-1) > df["close"]).astype(int) # Shift close price by -1 to get next hour's price and create binary target
+    """Create target variables for machine learning (next H1 bar).
+
+    - target: 1 if next close > current close (for longs).
+    - target_next_down: 1 if next close < current close (for shorts).
+    """
+    nxt = df["close"].shift(-1)
+    df["target"] = (nxt > df["close"]).astype(int)
+    df["target_next_down"] = (nxt < df["close"]).astype(int)
     return df
 
 def clean_data(df):
