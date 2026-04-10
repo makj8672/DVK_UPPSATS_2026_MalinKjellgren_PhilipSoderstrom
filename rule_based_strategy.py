@@ -14,6 +14,7 @@ class RuleBasedStrategy:
         cond3 = 35 <= row["rsi"] <= 65      # RSI neutral
         cond4 = row["obv_diff"] > 0         # OBV rising      
         
+        # Buy: bullish trend / flow, RSI still neutral
         if cond1 and cond2 and cond3 and cond4:
             return 1    # Buy signal
 

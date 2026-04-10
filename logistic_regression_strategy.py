@@ -95,13 +95,15 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
     def get_probability(self, row, signal):
         """P(success): favorable next bar for the given rule direction (1=long, -1=short)."""
-        sign = 1.0 if signal == 1 else -1.0
+        sign = 1.0 if signal == 1 else -1.0                         # Tell LR which direction we're asking about (long vs short)
+        
         # DataFrame with same column names/order as fit — avoids sklearn feature-name warnings
-        data = {c: float(row[c]) for c in self.INDICATOR_COLUMNS}
-        data["signal_sign"] = sign
-        X = pd.DataFrame([data], columns=self.FEATURE_COLUMNS)
-        X_scaled = self.scaler.transform(X)
-        return float(self.model.predict_proba(X_scaled)[0][1])
+        data = {c: float(row[c]) for c in self.INDICATOR_COLUMNS}   # Extract indicator values from row
+        data["signal_sign"] = sign                                  # Add signal_sign to the input data
+        X = pd.DataFrame([data], columns=self.FEATURE_COLUMNS)      # Create DataFrame with correct column order for scaler/model
+        X_scaled = self.scaler.transform(X)                         # Scale features using the same scaler as training
+        
+        return float(self.model.predict_proba(X_scaled)[0][1])      # Return probability of class 1 (success) as float
 
     def generate_signal(self, row):
         """Rule proposes direction; LR must confirm with P(success) > threshold."""

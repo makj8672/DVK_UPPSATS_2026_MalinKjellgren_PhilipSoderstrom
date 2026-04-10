@@ -11,13 +11,17 @@ import numpy as np
 
 
 def _build_rule_trading_split(frame, rule_signals):
+    """Filter out rows where rule == 0 and tells LR which 
+    direction we wish to predict (long vs short) via signal_sign."""
+    
     """Rows where rule != 0; target = next-bar success in that direction; add signal_sign."""
-    mask = rule_signals != 0
-    out = frame.loc[mask].copy()
-    sig = rule_signals.loc[mask]
-    # Long: next close up. Short: next close down (strict inequality matches create_target).
-    out["target"] = np.where(
-        sig.to_numpy() == 1,
+    mask = rule_signals != 0        # Only keep rows where rule fires (long or short)
+    out = frame.loc[mask].copy()    # Copy to avoid SettingWithCopyWarning when adding columns
+    sig = rule_signals.loc[mask]    # Corresponding signals for the filtered rows
+
+    # Long: next close up. Short: next close down (strict inequality matches create_target). #TODO: Kolla på denna och förstå
+    out["target"] = np.where( #TODO: Kanske bättre att ha två separata target-kolumner, en för long och en för short, istället för att blanda i en gemensam target-kolumn? Då kan vi undvika att behöva använda signal_sign som input till LR och istället bara träna på rätt target-kolumn beroende på signal
+        sig.to_numpy() == 1,                
         out["target"].to_numpy(),
         out["target_next_down"].to_numpy(),
     )

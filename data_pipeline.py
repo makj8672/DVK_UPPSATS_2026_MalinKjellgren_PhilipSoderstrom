@@ -57,7 +57,7 @@ def create_target(df):
     """
     nxt = df["close"].shift(-1)
     df["target"] = (nxt > df["close"]).astype(int)
-    df["target_next_down"] = (nxt < df["close"]).astype(int)
+    df["target_next_down"] = (nxt < df["close"]).astype(int)    # If next close is lower than current close.
     return df
 
 def clean_data(df):
