@@ -1,49 +1,43 @@
 #logistic_regression_strategy.py
 # Standalone rule-based trading strategy enhanced with logistic regression
 
-# Psudo code:
-# CLASS LogisticRegressionStrategy(RuleBasedStrategy):
-#     FUNCTION train(dataframe):
-#         Train logistic regression on indicator values (TODO: and target variable?)
-#
-#     FUNCTION generate_signal(row):
-#         Get probability from logistic regression 
-#         IF probability > 0.6:
-#             RETURN 1 (buy signal)
-#         IF probability < 0.4:
-#             RETURN -1 (sell signal)
-#         ELSE:
-#             RETURN 0 (hold signal)
-
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score
 from data_pipeline import split_data
 import numpy as np
+import pandas as pd
+
 #import joblib TODO: Delete or save?
 
 from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
+    FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
     REG_C = 4.64  # Default regularization strength, will be tuned on validation data
     # PENALTY = "l1" TODO: Ta bort?
     SOLVER = "liblinear"
+    CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
 
     # Constructor
     def __init__(self, model=None, scaler=None):
         self.model = model
         self.scaler = scaler
+        #TODO: NEW
+        # Columns used for fitting the logistic regression model, set during training
+        self.fit_columns = None
 
     def _prepare_data(self, train_data, val_data):
-        """Prepare and scale features for training and validation.
-        
-        Returns scaled train and validation sets.
-        """
-        
-        x_train = train_data[self.INDICATOR_COLUMNS]
+        # Long-only training often omits signal_sign; long+short uses _build_rule_trading_split which adds it.
+        available = [c for c in self.FEATURE_COLUMNS if c in train_data.columns]
+        if not available:
+            available = list(self.INDICATOR_COLUMNS)
+        self._fit_columns = available
+
+        x_train = train_data[self._fit_columns]
         y_train = train_data["target"]
-        x_val = val_data[self.INDICATOR_COLUMNS]
+        x_val = val_data[self._fit_columns]
         y_val = val_data["target"]
 
         self.scaler = StandardScaler()
@@ -51,7 +45,35 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         x_val_scaled = self.scaler.transform(x_val)
 
         return x_train_scaled, y_train, x_val_scaled, y_val
-    
+
+        
+
+    """def _prepare_data(self, train_data, val_data):
+        Prepare and scale features for training and validation.
+        
+        Returns scaled train and validation sets.
+        
+        #TODO: NEW
+        #x_train = train_data[self.INDICATOR_COLUMNS] TODO: deleted
+        x_train = train_data[self.FEATURE_COLUMNS]
+        available = [c for c in self.FEATURE_COLUMNS if c in train_data.columns]
+        if not available: 
+            available = list(self.INDICATOR_COLUMNS)  # Fall back to indicator columns if signal_sign is not available]
+        self.fit_columns = available     #TODO: NEW
+
+        x_train = train_data[self.fit_columns]   #TODO: NEW
+        y_train = train_data["target"]
+        #x_val = val_data[self.INDICATOR_COLUMNS]
+        x_val = val_data[self._fit_columns]  #TODO: NEW
+        y_val = val_data["target"]
+
+        self.scaler = StandardScaler()
+        x_train_scaled = self.scaler.fit_transform(x_train)
+        x_val_scaled = self.scaler.transform(x_val)
+
+        return x_train_scaled, y_train, x_val_scaled, y_val
+    """
+
     def tune(self, train_data, val_data):
         """Tune C parameter on validatation data"""
         
@@ -111,8 +133,10 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print("\n--- MQL5 Export ---")
         print(f"Intercept: {self.model.intercept_[0]}")
         print(f"Coefficients:")
-        for feature, coef in zip(self.INDICATOR_COLUMNS, self.model.coef_[0]):
+        for feature, coef in zip(self._fit_columns, self.model.coef_[0]):       #TODO: new - use self._fit_columns instead of self.INDICATOR_COLUMNS
             print(f"  {feature}: {coef}")
+        #for feature, coef in zip(self.INDICATOR_COLUMNS, self.model.coef_[0]): TODO: deleted
+        #    print(f"  {feature}: {coef}")  
         print(f"Scaler means: {self.scaler.mean_}")
         print(f"Scaler stds: {self.scaler.scale_}")
 
@@ -121,19 +145,55 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Max sannolikhet:   {proba.max():.3f}")
         print(f"Medel sannolikhet: {proba.mean():.3f}")
    
-    def get_probability(self, row):
-        """Return raw probability for interval-based backtesting."""
-        latest = row[self.INDICATOR_COLUMNS].to_frame().T
-        latest_scaled = self.scaler.transform(latest)
-        return self.model.predict_proba(latest_scaled)[0][1]
+   # TODO: new
+    def get_probability(self, row, signal):
+
+        if self._fit_columns is None:
+            raise ValueError("Model is not trained or fit columns are not defined.")
+        
+        sign = 1.0 if signal == 1 else -1.0
+        data = {}
+        for c in self._fit_columns:
+            if c == "signal_sign":
+                data[c] = sign
+            else:
+                data[c] = float(row[c])
+        
+        x = pd.DataFrame([data], columns=self._fit_columns)
+        x_scaled = self.scaler.transform(x)
+
+        return float(self.model.predict_proba(x_scaled)[0][1])  # Probability of class 1 (buy signal)
+
+
+
+
+    #def get_probability(self, row):
+    #    """Return raw probability for interval-based backtesting."""
+    #    latest = row[self.INDICATOR_COLUMNS].to_frame().T
+    #    latest_scaled = self.scaler.transform(latest)
+    #    return self.model.predict_proba(latest_scaled)[0][1]
 
     def generate_signal(self, row):
-            """
+        
+        direction = super().generate_signal(row)
+        if direction == 0:
+            return 0  # Hold signal, no need to calculate probability
+        if self.model is None or self.scaler is None:
+            return direction  # If model isn't trained, fall back to rule-based signal
+        
+        p = self.get_probability(row, direction)
+
+        if p > self.CONFIRMATION_THRESHOLD:
+            return direction  # Return original buy/sell signal if probability is high enough
+        return 0  # Otherwise, return hold signal
+
+    """#def generate_signal(self, row):
+            
             NOTE: Not used in current implementation.
             Live trading is handled by the MQL5 Expert Advisor.
             Backtesting uses get_probability() instead.
             Could be used if live trading is moved to Python in the future.
-            """
+            
             latest = row[self.INDICATOR_COLUMNS].to_frame().T
             latest_scaled = self.scaler.transform(latest)
             probability = self.model.predict_proba(latest_scaled)[0][1]  # Probability of class 1 (buy signal)
@@ -143,4 +203,4 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             elif probability < 0.47:
                 return -1   # Sell signal
             else:
-                return 0    # Hold signal
+                return 0    # Hold signal"""

@@ -52,6 +52,7 @@ if __name__ == "__main__":
 
     # Interval backtest on test data
     trades_with_probabilities = run_backtest_with_probabilities(strategy_rule_based, strategy_logistic_regression, test_data)
+    
     if trades_with_probabilities is not None:
         interval_results = group_trades_by_interval(trades_with_probabilities)
         BacktestResult.print_interval_table(interval_results)
