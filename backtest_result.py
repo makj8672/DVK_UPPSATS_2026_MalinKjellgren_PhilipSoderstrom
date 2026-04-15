@@ -96,7 +96,7 @@ class BacktestResult:
         
         for label, trades in interval_results.items():
             if trades is None:
-                print(f"{label:<12} {'Inga trades':<8}")
+                print(f"{label:<12} {'No trades':<8}")
                 continue
             
             result = cls(trades, label)

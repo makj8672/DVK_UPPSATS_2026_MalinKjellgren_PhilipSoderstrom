@@ -14,8 +14,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
     FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
     REG_C = 4.64  # Default regularization strength, will be tuned on validation data
-    # PENALTY = "l1" TODO: Ta bort?
-    SOLVER = "liblinear"
+    # Proper L1 regularization in scikit-learn 1.8+:
+    # use elastic-net with l1_ratio=1.0 and solver="saga".
+    SOLVER = "saga"
+    PENALTY = "elasticnet"
+    L1_RATIO = 1.0
+    MAX_ITER = 5000
     CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
 
     def __init__(self, model=None, scaler=None):
@@ -29,8 +33,8 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
         # Decide which feature columns to use for training and validation.
         available = [c for c in self.FEATURE_COLUMNS if c in train_data.columns]    # "Ideal" feature list (indicator columns + signal_sign)
-       
-       # If signal_sign isnt available -> train with indicators only
+
+        # If signal_sign isn't available -> train with indicators only
         if not available:
             available = list(self.INDICATOR_COLUMNS)                                # Fall back to indicator columns if signal_sign is not available
         self._fit_columns = available      
@@ -63,11 +67,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         for C in C_values:
             model = LogisticRegression(
                 class_weight="balanced",
-                l1_ratio=1,
-                #penalty=self.PENALTY, TODO: Ta bort?
+                penalty=self.PENALTY,
+                l1_ratio=self.L1_RATIO,
                 solver=self.SOLVER,
                 random_state=42,
-                C=C
+                C=C,
+                max_iter=self.MAX_ITER,
             )
             model.fit(x_train_scaled, y_train)
             accuracy = accuracy_score(y_val, model.predict(x_val_scaled))
@@ -77,7 +82,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
                 best_accuracy = accuracy
                 best_C = C
             
-        print(f"\nBästa C: {best_C} med accuracy: {best_accuracy:.3f}")
+        print(f"\nBest C: {best_C} with accuracy: {best_accuracy:.3f}")
         return best_C
     
     def train(self, train_data, val_data, C=None):
@@ -94,11 +99,12 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
         self.model = LogisticRegression(
             class_weight="balanced",
-            l1_ratio=1,
-            #penalty=self.PENALTY, TODO: Ta bort?
+            penalty=self.PENALTY,
+            l1_ratio=self.L1_RATIO,
             solver=self.SOLVER,
             random_state=42,
-            C=C
+            C=C,
+            max_iter=self.MAX_ITER,
         )
         self.model.fit(x_train_scaled, y_train)
 
@@ -114,9 +120,9 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Scaler stds: {self.scaler.scale_}")
 
         proba = self.model.predict_proba(x_val_scaled)[:, 1]
-        print(f"Min sannolikhet:   {proba.min():.3f}")
-        print(f"Max sannolikhet:   {proba.max():.3f}")
-        print(f"Medel sannolikhet: {proba.mean():.3f}")
+        print(f"Min probability:   {proba.min():.3f}")
+        print(f"Max probability:   {proba.max():.3f}")
+        print(f"Median probability: {np.median(proba):.3f}")
 
     def tune_confirmation_threshold(self, val_data, thresholds=None, min_trades=30):
         """Tune confirmation threshold on validation data using trading metrics.
@@ -131,9 +137,11 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             thresholds = [round(x,2) for x in [0.45, 0.46, 0.47, 0.48, 0.49, 0.50, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59, 0.60]]
 
         best_threshold = None
-        best_tuple = None       # (accuracy, win_rate, expectancy, profit_factor) for best threshold
+        best_tuple = None       # (sharpe, expectancy, max_drawdown) for best threshold
 
         print("\n--- Tuning confirmation threshold ---")
+        print(f"{'Thr':<6} {'Trades':<8} {'Sharpe':<8} {'Drawdown':<10} {'Expectancy':<11} {'ProfitF':<9}")
+        print("-" * 60)
         for t in thresholds:
             self.CONFIRMATION_THRESHOLD = t
             trades_val = run_backtest(self, val_data)
@@ -156,14 +164,14 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
                     or (score[0] == best_tuple[0] and score[1] == best_tuple[1] and score[2] > best_tuple[2])):     #...Tie-break: drawdown less negative (higher)
                     best_tuple = score
                     best_threshold = t
-            
-            if best_threshold is not None:
-                self.CONFIRMATION_THRESHOLD = best_threshold
-                print(f"\nChosen CONFIRMATION_THRESHOLD: {best_threshold:.2f} (min_trades={min_trades})")
-            else:
-                print(f"\nNo threshold gave >= {min_trades} trades on validation data (val_data): keep default: {self.CONFIRMATION_THRESHOLD:.2f}")
 
-            return best_threshold
+        if best_threshold is not None:
+            self.CONFIRMATION_THRESHOLD = best_threshold
+            print(f"\nChosen CONFIRMATION_THRESHOLD: {best_threshold:.2f} (min_trades={min_trades})")
+        else:
+            print(f"\nNo threshold gave >= {min_trades} trades on validation data (val_data): keep default: {self.CONFIRMATION_THRESHOLD:.2f}")
+
+        return best_threshold
 
 
     def get_probability(self, row, signal):
@@ -186,15 +194,15 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         return float(probability)
 
     def generate_signal(self, row):
-        
+        """Generate trading signal based on rule-based strategy and logistic regression probability."""
         direction = super().generate_signal(row)
         if direction == 0:
-            return 0  # Hold signal, no need to calculate probability
+            return 0            # Hold signal, no need to calculate probability
         if self.model is None or self.scaler is None:
-            return direction  # If model isn't trained, fall back to rule-based signal
+            return direction    # If model isn't trained, fall back to rule-based signal
         
         p = self.get_probability(row, direction)
 
         if p > self.CONFIRMATION_THRESHOLD:
-            return direction  # Return original buy/sell signal if probability is high enough
-        return 0  # Otherwise, return hold signal
+            return direction    # Return original buy/sell signal if probability is high enough
+        return 0                # Otherwise, return hold signal

@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # Split data into train, validation and test sets
     train_data, val_data, test_data = split_data(df)
-    print(f"Storlek på test_data: {len(test_data)}")
+    print(f"Size of test_data: {len(test_data)}")
     
     # Initialize strategies
     strategy_rule_based = RuleBasedStrategy()
