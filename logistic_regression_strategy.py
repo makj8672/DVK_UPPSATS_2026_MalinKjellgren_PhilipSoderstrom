@@ -14,10 +14,10 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
     FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
     REG_C = 4.64  # Default regularization strength, will be tuned on validation data
-    # Proper L1 regularization in scikit-learn 1.8+:
-    # use elastic-net with l1_ratio=1.0 and solver="saga".
+    # scikit-learn 1.8+ deprecates `penalty=` for LogisticRegression.
+    # L1 vs L2 is controlled via `l1_ratio` instead (l1_ratio=1 -> L1, l1_ratio=0 -> L2).
+    # `saga` is required for this parameterization.
     SOLVER = "saga"
-    PENALTY = "elasticnet"
     L1_RATIO = 1.0
     MAX_ITER = 5000
     CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
@@ -67,7 +67,6 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         for C in C_values:
             model = LogisticRegression(
                 class_weight="balanced",
-                penalty=self.PENALTY,
                 l1_ratio=self.L1_RATIO,
                 solver=self.SOLVER,
                 random_state=42,
@@ -99,7 +98,6 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
 
         self.model = LogisticRegression(
             class_weight="balanced",
-            penalty=self.PENALTY,
             l1_ratio=self.L1_RATIO,
             solver=self.SOLVER,
             random_state=42,
