@@ -15,10 +15,10 @@ from rule_based_strategy import RuleBasedStrategy
 class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
     FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
-    REG_C = 4.64  # Default regularization strength, will be tuned on validation data
+    REG_C = 0.64  # Default regularization strength, will be tuned on validation data
     # PENALTY = "l1" TODO: Ta bort?
     SOLVER = "liblinear"
-    CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
+    CONFIRMATION_THRESHOLD = 0.47  # Minimum probability to confirm a buy signal, can be tuned on validation data
 
     # Constructor
     def __init__(self, model=None, scaler=None):
