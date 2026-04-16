@@ -61,7 +61,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         #C_values = [0.01, 0.1, 1, 10, 100]
         C_values = np.logspace(-2, 2, 10).tolist()
         best_C = None
-        best_accuracy = 0
+        best_accuracy = -1.0
 
         print("\n--- Tuning C parameter ---")
         for C in C_values:

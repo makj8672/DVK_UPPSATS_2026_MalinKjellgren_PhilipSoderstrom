@@ -1,29 +1,40 @@
 #main.py
-# Runs everything
+"""Main script to run the trading strategy backtests and compare results.
 
-# Psudo code: 
-# df = get_data()
-# strategyA = RuleBasedStrategy()
-# strategyB = LogisticRegressionStrategy()
-# strategyB.train(df)
-#
-# resultsA = run_backtest(strategyA, df)
-# resultsB = run_backtest(strategyB, df)
-
-# Compare and print results
+To enable rerunning the exact dataset from the result in chapter 4, the option
+to retrieve dataset snapshot (CSV) through AI-generated helper methods
+written in snapshot_io can be enabled if wanted.
+"""
+from pathlib import Path
 
 from data_pipeline import create_target, get_data, create_features, clean_data, split_data
 from rule_based_strategy import RuleBasedStrategy
 from logistic_regression_strategy import LogisticRegressionStrategy
 from backtest import group_trades_by_interval, run_backtest, run_backtest_with_probabilities
 from backtest_result import BacktestResult
+from snapshot_io import load_snapshot, save_snapshot
 
 
 if __name__ == "__main__":
+    """OBS! Comment out option 1 or 2, 
+    only one can be ran at the time"""
+
+    # Option 1 - Live data (default)
     df = get_data()
+
+    # Option 2 - Load snapshot (use this for chapter 4 reruns)
+    #df = load_snapshot("snapshots/mt5_snapshot_20260416_133057Z.csv")
+
+    # Option 3 - Save snapshot (fetch and save livedata into snapshot - freeze dataset)
+    #df = get_data()
+    #save_snapshot(df, snapshots_dir=Path(__file__).resolve().parent / "snapshots")
+   
+    
     df = create_features(df)
     df = create_target(df)
     df = clean_data(df)
+
+   
 
     # Split data into train, validation and test sets
     train_data, val_data, test_data = split_data(df)
@@ -69,3 +80,4 @@ if __name__ == "__main__":
     else:
         print("LogisticRegressionStrategy: No trades executed.")
     
+
