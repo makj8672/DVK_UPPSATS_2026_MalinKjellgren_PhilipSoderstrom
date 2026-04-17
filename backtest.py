@@ -3,8 +3,7 @@
 """Backtesting utilities for trading strategies.
 Compare both strategies across probability intervals
 
-Note: Backtest supports both long and short signals. Current
-experiments only generate long signals, but the code is kept generic.
+Note: Backtest supports only long signals.
 """
 
 # Backtesting settings (static risk/reward)
@@ -25,12 +24,11 @@ def _execute_trade(test_data, i, entry_price, signal):
     """Execute a single trade and return return %
 
     - signal == 1 -> long
-    - signal == -1 -> short 
     """
 
     # Confirm signal is valid
-    if signal not in (1, -1):
-        raise ValueError(f"Invalid signal: {signal}. Expected 1 for long or -1 for short.")
+    if signal != 1:
+        raise ValueError(f"Invalid signal: {signal}. Expected 1 for long signal")
     
     exit_price = entry_price    # Default: exit at last checked bar if no SL/TP hit
 
@@ -44,13 +42,9 @@ def _execute_trade(test_data, i, entry_price, signal):
         # Get the price at the current hour
         current_price = test_data.iloc[i + h]["close"]
 
-        # Calculate return percentage based on trade direction (long or short)
-        if signal == 1:  
-            # Long return: profit when price rises
-            current_return = (current_price - entry_price) / entry_price * 100  
-        else:  
-            # Short return: profit when price falls
-            current_return = (entry_price - current_price) / entry_price * 100  
+        # Calculate return percentage based on trade direction (long ) 
+        # Long return: profit when price rises
+        current_return = (current_price - entry_price) / entry_price * 100  
 
         # Exit if stop-loss or take-profit is hit (or max holding time is reached)
         if current_return <= -stop_loss_pct:
@@ -63,9 +57,7 @@ def _execute_trade(test_data, i, entry_price, signal):
             exit_price = current_price          # Time-based exit, exit at current price
     
     # Convert exit price into signed % return for executed direction
-    if signal == 1:  
-        return (exit_price - entry_price) / entry_price * 100   # Long return %
-    return (exit_price - entry_price) / entry_price * 100       # Short return %
+    return (exit_price - entry_price) / entry_price * 100       # Long return %
 
 
 def run_backtest(strategy, data_frame):
@@ -73,8 +65,8 @@ def run_backtest(strategy, data_frame):
 
     The strategy must implement a `generate_signal(row)` method that returns:
     - 1 for long buy signal
-    - -1 for short sell signal
-    - 0 for hold signal (no trade)"""
+    - 0 for hold signal (no trade)
+    """
 
     trades = []    # Create empty list to store trade returns
 
@@ -83,8 +75,8 @@ def run_backtest(strategy, data_frame):
         row = data_frame.iloc[i]                # Get the current row of data
         signal = strategy.generate_signal(row)  # Generate trading signal using the strategy
 
-        # Find buy- or sell signal and execute trade
-        if signal in (1,-1):
+        # Find buy signal and execute trade
+        if signal == 1:
             entry_price = row["close"]                                      # Enter at close price of signal bar
             return_pct = _execute_trade(data_frame, i, entry_price, signal) # Simulate trade and get return %
             trades.append(return_pct)                                       # Store trade return for metrics
@@ -105,7 +97,7 @@ def run_backtest_with_probabilities(rule_strategy, lr_strategy, data_frame):
     # Interate through possible entry points (leave room for the forward window)
     for i in range(len(data_frame) - forward_hours):
         row = data_frame.iloc[i]                        # Current candel (potential entry)
-        signal = rule_strategy.generate_signal(row)     # Rule decides direction (1, -1 or 0)
+        signal = rule_strategy.generate_signal(row)     # Rule decides direction (1 or 0)
 
         # Only score/record trades where the rule fires
         if signal == 0:

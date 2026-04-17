@@ -58,13 +58,15 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         
         x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(train_data, val_data)
 
-        #C_values = [0.01, 0.1, 1, 10, 100]
-        C_values = np.logspace(-2, 2, 10).tolist()
+        # Create ten different C-values distributed logarithmically between 0.01 and 100
+        C_values = np.logspace(-2, 2, 10).tolist()   #C_values = [0.01, 0.1, 1, 10, 100]
         best_C = None
         best_accuracy = -1.0
 
+        # Train a model for each C and evaluate on buy signal rows
         print("\n--- Tuning C parameter ---")
         for C in C_values:
+            # Create temporary LG-model with current C-value
             model = LogisticRegression(
                 class_weight="balanced",
                 l1_ratio=self.L1_RATIO,
@@ -73,10 +75,11 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
                 C=C,
                 max_iter=self.MAX_ITER,
             )
-            model.fit(x_train_scaled, y_train)
-            accuracy = accuracy_score(y_val, model.predict(x_val_scaled))
+            model.fit(x_train_scaled, y_train)                              # Train temporary model with current C-value
+            accuracy = accuracy_score(y_val, model.predict(x_val_scaled))   # Evaluate temporary model on validation data using accuracy
             print(f"C={C:<10.4f} Accuracy = {accuracy:.3f}")
             
+            # Choose the best C-value - Keep track of best C so far
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
                 best_C = C
