@@ -14,9 +14,9 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
     FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
     REG_C = 4.64  # Default regularization strength, will be tuned on validation data
-    # scikit-learn 1.8+ deprecates `penalty=` for LogisticRegression.
-    # L1 vs L2 is controlled via `l1_ratio` instead (l1_ratio=1 -> L1, l1_ratio=0 -> L2).
-    # `saga` is required for this parameterization.
+    # Thesis method: L1-regularized logistic regression.
+    # In scikit-learn >= 1.8, `penalty` is deprecated; use `l1_ratio` instead.
+    # l1_ratio=1.0 corresponds to pure L1 per sklearn warning message.
     SOLVER = "saga"
     L1_RATIO = 1.0
     MAX_ITER = 5000
