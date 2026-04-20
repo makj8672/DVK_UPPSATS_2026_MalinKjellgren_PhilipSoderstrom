@@ -55,7 +55,7 @@ if __name__ == "__main__":
     best_C = strategy_logistic_regression.tune(buy_signal_rows, buy_signal_rows_val)
     strategy_logistic_regression.train(buy_signal_rows, buy_signal_rows_val, C=best_C)
 
-    strategy_logistic_regression.tune_confirmation_threshold(buy_signal_rows_val, min_trades=30)
+    strategy_logistic_regression.tune_confirmation_threshold(buy_signal_rows_val, min_trades=100)
 
     # Baseline backtest on test data
     trades_rule_based = run_backtest(strategy_rule_based, test_data)

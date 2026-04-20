@@ -12,12 +12,13 @@ from rule_based_strategy import RuleBasedStrategy
 
 class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
-    FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
+    FEATURE_COLUMNS = INDICATOR_COLUMNS #+ ["signal_sign"]  # Add signal sign as a feature for probability estimation
     REG_C = 4.64  # Default regularization strength, will be tuned on validation data
     # Thesis method: L1-regularized logistic regression.
     # In scikit-learn >= 1.8, `penalty` is deprecated; use `l1_ratio` instead.
     # l1_ratio=1.0 corresponds to pure L1 per sklearn warning message.
-    SOLVER = "saga"
+    #SOLVER = "saga"
+    SOLVER = "liblinear"
     L1_RATIO = 1.0
     MAX_ITER = 5000
     CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
