@@ -23,7 +23,7 @@ if __name__ == "__main__":
     df = get_data()
 
     # Option 2 - Load snapshot (use this for chapter 4 reruns)
-    #df = load_snapshot("snapshots/mt5_snapshot_20260416_133057Z.csv")
+    # df = load_snapshot("snapshots/mt5_snapshot_20260416_133057Z.csv")
 
     # Option 3 - Save snapshot (fetch and save livedata into snapshot - freeze dataset)
     #df = get_data()
