@@ -17,9 +17,9 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
     # Thesis method: L1-regularized logistic regression.
     # In scikit-learn >= 1.8, `penalty` is deprecated; use `l1_ratio` instead.
     # l1_ratio=1.0 corresponds to pure L1 per sklearn warning message.
-    SOLVER = "saga"
-    L1_RATIO = 1.0
-    MAX_ITER = 5000
+    SOLVER = "liblinear"
+    L1_RATIO = 1.0 
+    MAX_ITER = 5000 
     CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
 
     def __init__(self, model=None, scaler=None):
@@ -125,7 +125,7 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         print(f"Max probability:   {proba.max():.3f}")
         print(f"Median probability: {np.median(proba):.3f}")
 
-    def tune_confirmation_threshold(self, val_data, thresholds=None, min_trades=30):
+    def tune_confirmation_threshold(self, val_data, thresholds=None, min_trades=100):
         """Tune confirmation threshold on validation data using trading metrics.
             Not LR-specific"""
         

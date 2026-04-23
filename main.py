@@ -20,10 +20,10 @@ if __name__ == "__main__":
     only one can be ran at the time"""
 
     # Option 1 - Live data (default)
-    df = get_data()
+    #df = get_data()
 
     # Option 2 - Load snapshot (use this for chapter 4 reruns)
-    #df = load_snapshot("snapshots/mt5_snapshot_20260416_133057Z.csv")
+    df = load_snapshot("snapshots/mt5_snapshot_20260416_133057Z.csv")
 
     # Option 3 - Save snapshot (fetch and save livedata into snapshot - freeze dataset)
     #df = get_data()
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     best_C = strategy_logistic_regression.tune(buy_signal_rows, buy_signal_rows_val)
     strategy_logistic_regression.train(buy_signal_rows, buy_signal_rows_val, C=best_C)
 
-    strategy_logistic_regression.tune_confirmation_threshold(buy_signal_rows_val, min_trades=30)
+    strategy_logistic_regression.tune_confirmation_threshold(buy_signal_rows_val)
 
     # Baseline backtest on test data
     trades_rule_based = run_backtest(strategy_rule_based, test_data)
