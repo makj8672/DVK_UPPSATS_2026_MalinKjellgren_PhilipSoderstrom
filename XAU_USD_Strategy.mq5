@@ -10,21 +10,21 @@ CTrade trade;
 
 //--- Logistic Regression parameters (exported from Python)
 double LR_INTERCEPT            =  0.0;
-double LR_COEF_PRICE_TO_SMA    =  0.03290340087022982;
-double LR_COEF_SMA_CROSS       = -0.10777507250300551;
-double LR_COEF_RSI             = -0.08919297797970063;
-double LR_COEF_OBV_DIFF        = -0.017944518113328083;
+double LR_COEF_PRICE_TO_SMA    = -0.0014775467098251517;
+double LR_COEF_SMA_CROSS       = -0.05401952758770533;
+double LR_COEF_RSI             = -0.05907902933460125;
+double LR_COEF_OBV_DIFF        =  0.0;
 
 //--- Scaler parameters (exported from Python)
-double SCALER_MEAN_PRICE_TO_SMA =  1.26126161e-02;
-double SCALER_MEAN_SMA_CROSS    =  1.10442329e-02;
-double SCALER_MEAN_RSI          =  5.34808030e+01;
-double SCALER_MEAN_OBV_DIFF     =  5.59306017e-03;
+double SCALER_MEAN_PRICE_TO_SMA =  1.26173964e-02;
+double SCALER_MEAN_SMA_CROSS    =  1.10097394e-02;
+double SCALER_MEAN_RSI          =  5.34990870e+01;
+double SCALER_MEAN_OBV_DIFF     =  5.12834796e-03;
 
-double SCALER_STD_PRICE_TO_SMA  =  0.00934288;
-double SCALER_STD_SMA_CROSS     =  0.00810241;
-double SCALER_STD_RSI           =  7.32071163;
-double SCALER_STD_OBV_DIFF      =  0.00818775;
+double SCALER_STD_PRICE_TO_SMA  =  9.30170135e-03;
+double SCALER_STD_SMA_CROSS     =  8.06071600e-03;
+double SCALER_STD_RSI           =  7.28638368e+00;
+double SCALER_STD_OBV_DIFF      =  5.40961690e-03;
 
 //--- Strategy parameters
 double STOP_LOSS_PCT    = 1.0;
