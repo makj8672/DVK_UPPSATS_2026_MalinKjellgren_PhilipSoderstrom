@@ -13,12 +13,8 @@ from rule_based_strategy import RuleBasedStrategy
 class LogisticRegressionStrategy(RuleBasedStrategy):
     INDICATOR_COLUMNS = ["price_to_sma", "sma_cross", "rsi", "obv_diff"]
     FEATURE_COLUMNS = INDICATOR_COLUMNS + ["signal_sign"]  # Add signal sign as a feature for probability estimation
-    REG_C = 4.64  # Default regularization strength, will be tuned on validation data
-    # Thesis method: L1-regularized logistic regression.
-    # In scikit-learn >= 1.8, `penalty` is deprecated; use `l1_ratio` instead.
-    # l1_ratio=1.0 corresponds to pure L1 per sklearn warning message.
-    SOLVER = "liblinear"
-    L1_RATIO = 1.0 
+    REG_C = 1.67  # Default regularization strength, will be tuned on validation data
+    SOLVER = "liblinear" # Uses L2 regularization as default
     MAX_ITER = 5000 
     CONFIRMATION_THRESHOLD = 0.50  # Minimum probability to confirm a buy signal, can be tuned on validation data
 
@@ -69,7 +65,6 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
             # Create temporary LG-model with current C-value
             model = LogisticRegression(
                 class_weight="balanced",
-                l1_ratio=self.L1_RATIO,
                 solver=self.SOLVER,
                 random_state=42,
                 C=C,
@@ -97,16 +92,16 @@ class LogisticRegressionStrategy(RuleBasedStrategy):
         if C is None:
             C = self.REG_C
 
-        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(train_data, val_data)
+        x_train_scaled, y_train, x_val_scaled, y_val = self._prepare_data(train_data, val_data)      
 
         self.model = LogisticRegression(
             class_weight="balanced",
-            l1_ratio=self.L1_RATIO,
             solver=self.SOLVER,
             random_state=42,
             C=C,
             max_iter=self.MAX_ITER,
         )
+
         self.model.fit(x_train_scaled, y_train)
 
         y_pred = self.model.predict(x_val_scaled)
