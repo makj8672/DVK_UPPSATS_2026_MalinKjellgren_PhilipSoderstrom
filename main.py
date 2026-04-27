@@ -39,6 +39,9 @@ if __name__ == "__main__":
     # Split data into train, validation and test sets
     train_data, val_data, test_data = split_data(df)
     print(f"Size of test_data: {len(test_data)}")
+    print(f"Train: {train_data['time'].iloc[0]} till {train_data['time'].iloc[-1]} ({len(train_data)} rader)")
+    print(f"Val:   {val_data['time'].iloc[0]} till {val_data['time'].iloc[-1]} ({len(val_data)} rader)")
+    print(f"Test:  {test_data['time'].iloc[0]} till {test_data['time'].iloc[-1]} ({len(test_data)} rader)")
     
     # Initialize strategies
     strategy_rule_based = RuleBasedStrategy()
